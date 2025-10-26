@@ -191,7 +191,7 @@ Your database is automatically configured with:
 - **User Isolation**: Each user can only see their own data
 - **Anonymous Auth**: No personal info stored in authentication
 - **Encrypted**: Data encrypted in transit and at rest
-- **HIPAA Compliant**: Designed for de-identified data only
+- **HIPAA-Compliant**: Designed for de-identified data only
 
 ## Troubleshooting
 

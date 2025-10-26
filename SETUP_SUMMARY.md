@@ -47,7 +47,7 @@ Your repository now has everything needed to complete the Firebase database setu
 
 These files were already created and are ready to use:
 
-- **`firestore.rules`** - Security rules (user isolation, HIPAA compliant)
+- **`firestore.rules`** - Security rules (user isolation, HIPAA-compliant)
 - **`firestore.indexes.json`** - Database indexes (optimized queries)
 - **`firebase.json`** - Firebase configuration
 - **`src/firebase-config.js`** - Firebase initialization code
@@ -111,7 +111,7 @@ Your database includes:
 - **Anonymous Authentication**: No PII in authentication
 - **Path-Based Security**: Rules enforce userId matching
 - **Encryption**: Data encrypted in transit (HTTPS) and at rest
-- **HIPAA Compliant**: Designed for de-identified data only
+- **HIPAA-Compliant**: Designed for de-identified data only
 
 Security rules are already written and will be deployed when you run `npm run setup-database` or manually with `firebase deploy --only firestore`.
 

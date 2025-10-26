@@ -149,7 +149,8 @@ async function testDatabaseConnection() {
     printSection('7. Testing Security Rules');
     
     print('Attempting to read another user\'s data...', 'cyan');
-    const fakeUserId = 'fake-user-id-' + Math.random().toString(36).substring(7);
+    // Use crypto.randomUUID() for a secure random ID (even though this is just a test)
+    const fakeUserId = 'test-user-' + crypto.randomUUID();
     const unauthorizedDocPath = `artifacts/${appId}/users/${fakeUserId}/test_connection/test`;
     const unauthorizedDocRef = doc(db, unauthorizedDocPath);
     
