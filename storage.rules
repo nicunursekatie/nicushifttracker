@@ -1,0 +1,44 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is accessing their own data
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper function to validate file size (max 5MB)
+    function isValidSize() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+    
+    // Helper function to validate image file types
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    // User-specific storage path
+    match /users/{userId}/{allPaths=**} {
+      // Users can read and write their own files
+      allow read: if isOwner(userId);
+      
+      // Allow uploads only if authenticated, owner, valid size, and is an image
+      allow write: if isOwner(userId) && isValidSize() && isImage();
+      
+      // Allow deletion of own files
+      allow delete: if isOwner(userId);
+    }
+    
+    // Shift-specific attachments (future use)
+    match /shifts/{userId}/{shiftId}/{allPaths=**} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidSize() && isImage();
+      allow delete: if isOwner(userId);
+    }
+  }
+}

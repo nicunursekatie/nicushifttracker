@@ -248,7 +248,7 @@ const Input = ({ label, type = 'text', value = '', onChange, placeholder, classN
         {label && <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>}
         <input
             type={type}
-            name={name} {/* ADDED name prop here */}
+            name={name}
             value={value}
             onChange={onChange}
             placeholder={placeholder}
@@ -262,7 +262,7 @@ const Select = ({ label, value = '', onChange, options, className = '', name }) 
     <div>
         {label && <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>}
         <select
-            name={name} {/* ADDED name prop here */}
+            name={name}
             value={value}
             onChange={onChange}
             className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm ${className}`}
@@ -281,7 +281,7 @@ const TextArea = ({ label, value = '', onChange, placeholder, rows = 3, classNam
     <div>
         {label && <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>}
         <textarea
-            name={name} {/* ADDED name prop here */}
+            name={name}
             value={value}
             onChange={onChange}
             placeholder={placeholder}

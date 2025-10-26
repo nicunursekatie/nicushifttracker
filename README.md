@@ -94,85 +94,68 @@ The app uses Firebase for data storage. All data is stored per-user and not shar
 
 ## Setup Instructions
 
+### Quick Start
+
+**New to Firebase?** Follow our step-by-step guide:
+
+📚 **[Quick Start Guide (5 minutes)](./QUICKSTART.md)** - Fast setup for getting started
+
+📖 **[Complete Setup Guide](./FIREBASE_SETUP.md)** - Detailed instructions with troubleshooting
+
+🗄️ **[Database Schema](./DATABASE_SCHEMA.md)** - Understanding the data structure
+
 ### Prerequisites
 
 - Node.js (v18 or higher)
 - npm or yarn
 - A Firebase account (free tier is sufficient for personal use)
 
-### 1. Clone the Repository
+### Setup Steps Overview
 
-```bash
-git clone <your-repo-url>
-cd nicushifttracker
-```
+1. **Clone and Install**
+   ```bash
+   git clone <your-repo-url>
+   cd nicushifttracker
+   npm install
+   ```
 
-### 2. Install Dependencies
+2. **Create Firebase Project**
+   - Visit [Firebase Console](https://console.firebase.google.com/)
+   - Create new project
+   - Enable Firestore Database (production mode)
+   - Enable Anonymous Authentication
 
-```bash
-npm install
-```
-
-### 3. Set Up Firebase
-
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project (or use an existing one)
-3. Enable **Firestore Database**:
-   - Go to Firestore Database
-   - Create database in production mode
-   - Choose a location close to you
-4. Enable **Authentication**:
-   - Go to Authentication
-   - Enable "Anonymous" sign-in method
-5. Get your Firebase configuration:
-   - Go to Project Settings > General
-   - Scroll to "Your apps" section
-   - Click "Web app" (</>) icon
-   - Copy the config object
-
-### 4. Configure Environment Variables
-
-1. Copy the example environment file:
+3. **Configure Environment**
    ```bash
    cp .env.example .env
+   # Edit .env with your Firebase credentials
    ```
 
-2. Edit `.env` and add your Firebase configuration:
-   ```env
-   VITE_FIREBASE_API_KEY=your-api-key
-   VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=your-project-id
-   VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-   VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
-   VITE_FIREBASE_APP_ID=your-app-id
+4. **Deploy Security Rules**
+   ```bash
+   firebase login
+   firebase deploy --only firestore
    ```
 
-### 5. Update Firebase Config in Code (Alternative Method)
+5. **Verify Setup**
+   ```bash
+   npm run verify-firebase
+   ```
+
+6. **Start Development**
+   ```bash
+   npm run dev
+   ```
+
+For detailed instructions, see **[FIREBASE_SETUP.md](./FIREBASE_SETUP.md)**.
+
+### Alternative: Manual Firebase Setup
 
 If you prefer to configure Firebase directly in code (for Canvas or similar environments):
 
 Edit `src/App.jsx` and update the Firebase initialization section (lines 8-11) to use your config directly or environment variables.
 
-### 6. Set Up Firestore Security Rules
-
-In Firebase Console > Firestore Database > Rules, add these rules:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Allow each user to read/write only their own data
-    match /artifacts/{appId}/users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
-
-### 7. Run Development Server
-
-```bash
-npm run dev
+Manual security rules setup is also covered in the [Complete Setup Guide](./FIREBASE_SETUP.md#step-6-set-up-firestore-security-rules).
 ```
 
 The app will be available at `http://localhost:3000`
