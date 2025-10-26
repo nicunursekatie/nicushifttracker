@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is accessing their own data
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Root artifacts collection - no direct access
+    match /artifacts/{appId} {
+      allow read, write: if false;
+      
+      // Users subcollection - each user can only access their own data
+      match /users/{userId} {
+        allow read, write: if false;
+        
+        // NICU shifts collection - user-specific data
+        match /nicu_shifts/{shiftId} {
+          // Users can read and write their own shifts
+          allow read, write: if isOwner(userId);
+          
+          // Babies subcollection within a shift
+          match /babies/{babyId} {
+            // Users can read and write babies in their own shifts
+            allow read, write: if isOwner(userId);
+            
+            // Report sheet data for a baby
+            match /reportSheet/{document=**} {
+              allow read, write: if isOwner(userId);
+            }
+            
+            // Touch time logs for a baby
+            match /touchTimeLogs/{logId} {
+              allow read, write, create, delete: if isOwner(userId);
+            }
+            
+            // Event logs for a baby
+            match /eventLogs/{eventId} {
+              allow read, write, create, delete: if isOwner(userId);
+            }
+          }
+        }
+        
+        // User preferences or settings (future use)
+        match /settings/{document=**} {
+          allow read, write: if isOwner(userId);
+        }
+        
+        // Archived shifts (future use)
+        match /archived_shifts/{shiftId} {
+          allow read, write: if isOwner(userId);
+          
+          match /{document=**} {
+            allow read, write: if isOwner(userId);
+          }
+        }
+      }
+    }
+  }
+}
