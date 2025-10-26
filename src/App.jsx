@@ -1,7 +1,7 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, collection, query, orderBy, onSnapshot, setDoc, addDoc, updateDoc, deleteDoc, getDoc, runTransaction } from 'firebase/firestore';
+import { getFirestore, doc, collection, query, orderBy, onSnapshot, setDoc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, writeBatch } from 'firebase/firestore';
 
 // --- Firebase Configuration & Context ---
 
@@ -101,41 +101,45 @@ const updateShift = async (userId, shiftId, shiftData) => {
     return await updateDoc(shiftRef, shiftData);
 };
 
-// Deletes a shift and its subcollections (babies, reports, etc.) using a transaction
+// Deletes a shift and its subcollections (babies, reports, etc.) using batch operations
 const deleteShift = async (userId, shiftId) => {
     if (!db || !userId) return;
     const shiftRef = doc(collection(getUserCollectionPath(userId), 'nicu_shifts'), shiftId);
 
-    // Use a transaction to delete all subcollections for a clean delete
-    await runTransaction(db, async (transaction) => {
-        const babiesQuery = query(collection(shiftRef, 'babies'));
-        const babiesSnapshot = await transaction.get(babiesQuery);
+    // Fetch all babies in the shift
+    const babiesQuery = query(collection(shiftRef, 'babies'));
+    const babiesSnapshot = await getDocs(babiesQuery);
 
-        // Delete all baby-related subcollections
-        for (const babyDoc of babiesSnapshot.docs) {
-            const babyRef = doc(shiftRef, 'babies', babyDoc.id);
+    // Use a write batch to delete all subcollections
+    const batch = writeBatch(db);
 
-            // Delete reportSheet
-            const reportSheetRef = doc(babyRef, 'reportSheet', 'main'); // Assuming single doc 'main'
-            transaction.delete(reportSheetRef);
+    // Delete all baby-related subcollections
+    for (const babyDoc of babiesSnapshot.docs) {
+        const babyRef = doc(shiftRef, 'babies', babyDoc.id);
 
-            // Delete touchTimeLogs
-            const touchTimesQuery = query(collection(babyRef, 'touchTimeLogs'));
-            const touchTimesSnapshot = await transaction.get(touchTimesQuery);
-            touchTimesSnapshot.docs.forEach(doc => transaction.delete(doc.ref));
+        // Delete reportSheet
+        const reportSheetRef = doc(babyRef, 'reportSheet', 'main');
+        batch.delete(reportSheetRef);
 
-            // Delete eventLogs
-            const eventsQuery = query(collection(babyRef, 'eventLogs'));
-            const eventsSnapshot = await transaction.get(eventsQuery);
-            eventsSnapshot.docs.forEach(doc => transaction.delete(doc.ref));
+        // Delete touchTimeLogs
+        const touchTimesQuery = query(collection(babyRef, 'touchTimeLogs'));
+        const touchTimesSnapshot = await getDocs(touchTimesQuery);
+        touchTimesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
 
-            // Delete the baby document itself
-            transaction.delete(babyRef);
-        }
+        // Delete eventLogs
+        const eventsQuery = query(collection(babyRef, 'eventLogs'));
+        const eventsSnapshot = await getDocs(eventsQuery);
+        eventsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
 
-        // Finally, delete the shift document
-        transaction.delete(shiftRef);
-    });
+        // Delete the baby document itself
+        batch.delete(babyRef);
+    }
+
+    // Finally, delete the shift document
+    batch.delete(shiftRef);
+
+    // Commit the batch
+    await batch.commit();
     console.log(`Shift ${shiftId} and its subcollections deleted.`);
 };
 
@@ -359,6 +363,7 @@ const CollapsibleSection = ({ title, children, isOpen, toggleOpen }) => (
 // Screen 1: Shift Setup
 const ShiftSetupScreen = ({ onStartShift }) => {
     const [selectedTime, setSelectedTime] = useState('07:00');
+    const [assignmentType, setAssignmentType] = useState('ICU');
     const [currentDate, setCurrentDate] = useState('');
 
     useEffect(() => {
@@ -371,15 +376,37 @@ const ShiftSetupScreen = ({ onStartShift }) => {
         <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
             <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
                 <h2 className="text-3xl font-bold text-center text-indigo-800 mb-6">NICU Shift Tracker</h2>
+
                 <div className="mb-6">
                     <Select
                         label="Select Your Overall Shift Start Time:"
-                        name="shiftStartTime" // Added name prop for consistency, though not strictly needed here
+                        name="shiftStartTime"
                         value={selectedTime}
                         onChange={(e) => setSelectedTime(e.target.value)}
                         options={shiftStartOptions}
                     />
                 </div>
+
+                <div className="mb-6">
+                    <RadioGroup
+                        label="Assignment Type:"
+                        name="assignmentType"
+                        selectedValue={assignmentType}
+                        onChange={(e) => setAssignmentType(e.target.value)}
+                        options={[
+                            { value: 'ICU', label: 'ICU (Critical Care)' },
+                            { value: 'Intermediate', label: 'Intermediate (Feeder/Grower)' }
+                        ]}
+                    />
+                    <div className="mt-2 p-3 bg-gray-50 rounded-md text-xs text-gray-600">
+                        {assignmentType === 'ICU' ? (
+                            <p><strong>ICU Focus:</strong> IV lines, hourly assessments, critical care tasks, medications, problem-solving & advocacy</p>
+                        ) : (
+                            <p><strong>Intermediate Focus:</strong> Feeding progression, growth tracking, discharge planning, parent teaching</p>
+                        )}
+                    </div>
+                </div>
+
                 <div className="mb-8 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                     <p className="text-sm font-semibold text-indigo-700 mb-2">{currentDate}</p>
                     <p className="text-lg font-bold text-indigo-800 mb-2">Common Baby q3 Start Options:</p>
@@ -400,7 +427,11 @@ const ShiftSetupScreen = ({ onStartShift }) => {
                     </div>
                     <p className="text-xs text-gray-500 mt-2">You'll pick each baby's exact q3 start time when you add them.</p>
                 </div>
-                <Button onClick={() => onStartShift({ shiftDate: new Date().toISOString().slice(0, 10), shiftStartTime: selectedTime })} className="w-full">
+                <Button onClick={() => onStartShift({
+                    shiftDate: new Date().toISOString().slice(0, 10),
+                    shiftStartTime: selectedTime,
+                    assignmentType: assignmentType
+                })} className="w-full">
                     Start Shift
                 </Button>
             </div>
@@ -409,11 +440,10 @@ const ShiftSetupScreen = ({ onStartShift }) => {
 };
 
 // Screen 2: Baby List Dashboard
-const BabyListDashboard = ({ currentShift, onAddBaby, onSelectBaby, onDeleteShift }) => {
+const BabyListDashboard = ({ currentShift, onAddBaby, onSelectBaby, onEndShift }) => {
     const { userId, db } = useContext(AppContext);
     const [babies, setBabies] = useState([]);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deletingShift, setDeletingShift] = useState(false);
+    const [showEndShiftConfirm, setShowEndShiftConfirm] = useState(false);
 
     useEffect(() => {
         if (!userId || !currentShift?.id) return;
@@ -421,25 +451,22 @@ const BabyListDashboard = ({ currentShift, onAddBaby, onSelectBaby, onDeleteShif
         return () => unsubscribe();
     }, [userId, currentShift?.id]);
 
-    const handleDeleteShift = async () => {
-        setDeletingShift(true);
-        try {
-            await deleteShift(userId, currentShift.id);
-            alert('Shift deleted successfully!');
-        } catch (error) {
-            console.error("Error deleting shift:", error);
-            alert('Failed to delete shift. See console for details.');
-        } finally {
-            setDeletingShift(false);
-            setShowDeleteConfirm(false);
-        }
-    };
-
     return (
         <div className="min-h-screen bg-gray-50 p-4">
             <div className="container mx-auto py-8">
-                <h2 className="text-3xl font-bold text-gray-800 mb-2">Current Shift</h2>
-                <p className="text-xl text-indigo-700 mb-6">Shift Start: {currentShift.shiftDate} @ {currentShift.shiftStartTime}</p>
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-3xl font-bold text-gray-800 mb-2">Current Shift</h2>
+                        <p className="text-xl text-indigo-700">Shift Start: {currentShift.shiftDate} @ {currentShift.shiftStartTime}</p>
+                    </div>
+                    <div className={`px-4 py-2 rounded-lg font-semibold text-lg ${
+                        currentShift.assignmentType === 'ICU'
+                            ? 'bg-red-100 text-red-800 border-2 border-red-300'
+                            : 'bg-green-100 text-green-800 border-2 border-green-300'
+                    }`}>
+                        {currentShift.assignmentType || 'ICU'} Assignment
+                    </div>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     {babies.length === 0 ? (
@@ -460,18 +487,18 @@ const BabyListDashboard = ({ currentShift, onAddBaby, onSelectBaby, onDeleteShif
 
                 <div className="flex justify-between items-center mt-8">
                     <Button onClick={onAddBaby}>Add Baby</Button>
-                    <Button onClick={() => setShowDeleteConfirm(true)} className="bg-red-500 hover:bg-red-600 ml-4">End Shift / Delete</Button>
+                    <Button onClick={() => setShowEndShiftConfirm(true)} className="bg-indigo-500 hover:bg-indigo-600 ml-4">End Shift & View Summary</Button>
                 </div>
 
-                {showDeleteConfirm && (
+                {showEndShiftConfirm && (
                     <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
                         <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center">
-                            <p className="text-lg font-semibold mb-4">Are you sure you want to end and delete this shift?</p>
-                            <p className="text-sm text-gray-600 mb-6">This action cannot be undone and will remove all data for this shift and its babies.</p>
+                            <p className="text-lg font-semibold mb-4">Ready to end your shift?</p>
+                            <p className="text-sm text-gray-600 mb-6">You'll be able to review your shift summary, copy it for charting, and then optionally delete the shift data.</p>
                             <div className="flex justify-center space-x-4">
-                                <Button onClick={() => setShowDeleteConfirm(false)} className="bg-gray-400 hover:bg-gray-500">Cancel</Button>
-                                <Button onClick={handleDeleteShift} disabled={deletingShift} className="bg-red-600 hover:bg-red-700">
-                                    {deletingShift ? 'Deleting...' : 'Confirm Delete'}
+                                <Button onClick={() => setShowEndShiftConfirm(false)} className="bg-gray-400 hover:bg-gray-500">Cancel</Button>
+                                <Button onClick={() => { setShowEndShiftConfirm(false); onEndShift(); }} className="bg-indigo-600 hover:bg-indigo-700">
+                                    View Summary
                                 </Button>
                             </div>
                         </div>
@@ -639,11 +666,11 @@ const AddBabyScreen = ({ currentShiftId, shiftStartTime, onSaveBaby, onCancel })
 };
 
 // Component for Report Sheet tab
-const ReportSheetSection = ({ currentShiftId, babyId }) => {
+const ReportSheetSection = ({ currentShiftId, babyId, assignmentType }) => {
     const { userId, db } = useContext(AppContext);
     const [reportData, setReportData] = useState({});
     const [isSaving, setIsSaving] = useState(false);
-    const [openSection, setOpenSection] = useState('historyProblems'); // Accordion state
+    const [openSection, setOpenSection] = useState(assignmentType === 'Intermediate' ? 'feedingProgression' : 'historyProblems'); // Accordion state - default to relevant section
 
     const toggleSection = (sectionName) => {
         setOpenSection(openSection === sectionName ? '' : sectionName);
@@ -668,7 +695,25 @@ const ReportSheetSection = ({ currentShiftId, babyId }) => {
                 feedVolume: data?.feedVolume || null, // Changed to null for numbers
                 feedSpecialInstructions: data?.feedSpecialInstructions || '',
                 bottleNippleType: data?.bottleNippleType || '',
-                ivFluids: data?.ivFluids || '',
+                ivLineType: data?.ivLineType || '', // '', 'Peripheral', 'PICC', 'UVC', 'UAC'
+                ivSite: data?.ivSite || '',
+                ivFluidsGeneral: data?.ivFluidsGeneral || '',
+                ivRateGeneral: data?.ivRateGeneral || '',
+                // PICC-specific
+                piccCircumference: data?.piccCircumference || '',
+                piccLineOut: data?.piccLineOut || '',
+                piccFluids: data?.piccFluids || '',
+                piccRate: data?.piccRate || '',
+                // UVC-specific
+                uvcLengthVisible: data?.uvcLengthVisible || '',
+                uvcProximalLumen: data?.uvcProximalLumen || '',
+                uvcProximalRate: data?.uvcProximalRate || '',
+                uvcDistalLumen: data?.uvcDistalLumen || '',
+                uvcDistalRate: data?.uvcDistalRate || '',
+                // UAC-specific
+                uacLengthVisible: data?.uacLengthVisible || '',
+                uacFluids: data?.uacFluids || '',
+                uacRate: data?.uacRate || '',
                 medications: data?.medications || {
                     gentamicin: false,
                     ampicillin: false,
@@ -678,7 +723,19 @@ const ReportSheetSection = ({ currentShiftId, babyId }) => {
                 labsOrdered: data?.labsOrdered || '',
                 labResults: data?.labResults || '',
                 treatmentPlan: data?.treatmentPlan || '',
-                notes: data?.notes || ''
+                notes: data?.notes || '',
+                // Intermediate-specific fields
+                feedingProgression: data?.feedingProgression || '',
+                feedingGoals: data?.feedingGoals || '',
+                bottleFeedingStatus: data?.bottleFeedingStatus || '',
+                breastfeedingStatus: data?.breastfeedingStatus || '',
+                dischargeGoals: data?.dischargeGoals || '',
+                dischargeCriteria: data?.dischargeCriteria || '',
+                parentTeaching: data?.parentTeaching || '',
+                parentInvolvement: data?.parentInvolvement || '',
+                growthGoals: data?.growthGoals || '',
+                carSeatTest: data?.carSeatTest || '',
+                homePreparation: data?.homePreparation || ''
             });
         });
         return () => unsubscribe();
@@ -734,11 +791,7 @@ const ReportSheetSection = ({ currentShiftId, babyId }) => {
         try {
             await setReportSheet(userId, currentShiftId, babyId, reportData);
             alert('Report Sheet updated!');
-        } <<<<<<< HEAD
-=======
-        }
->>>>>>> 98846c243a757657d2d3a3390c5f2b3e945c71a3
-        catch (error) {
+        } catch (error) {
             console.error("Error saving report sheet:", error);
             alert('Failed to save report sheet.');
         } finally {
@@ -818,14 +871,78 @@ const ReportSheetSection = ({ currentShiftId, babyId }) => {
                 </CollapsibleSection>
 
                 <CollapsibleSection
-                    title="IV Fluids & Medications"
+                    title="IV Fluids & Lines"
                     isOpen={openSection === 'ivMeds'}
                     toggleOpen={() => toggleSection('ivMeds')}
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <TextArea label="IV Fluids" name="ivFluids" value={reportData.ivFluids} onChange={handleChange} placeholder="e.g., D10 80 mL/kg/day" />
+                        <Select
+                            label="IV Line Type"
+                            name="ivLineType"
+                            value={reportData.ivLineType}
+                            onChange={handleChange}
+                            options={['', 'Peripheral', 'PICC', 'UVC', 'UAC']}
+                        />
+                        <Input label="IV Site / Location" name="ivSite" value={reportData.ivSite} onChange={handleChange} placeholder="e.g., RH, left AC" />
+
+                        {/* Peripheral or General IV Fields */}
+                        {(reportData.ivLineType === 'Peripheral' || reportData.ivLineType === '') && (
+                            <>
+                                <TextArea label="IV Fluids" name="ivFluidsGeneral" value={reportData.ivFluidsGeneral} onChange={handleChange} placeholder="e.g., D10 80 mL/kg/day" />
+                                <Input label="Rate" name="ivRateGeneral" value={reportData.ivRateGeneral} onChange={handleChange} placeholder="e.g., 4.2 mL/hr" />
+                            </>
+                        )}
+
+                        {/* PICC Line Specific Fields */}
+                        {reportData.ivLineType === 'PICC' && (
+                            <>
+                                <Input label="Circumference (cm)" name="piccCircumference" value={reportData.piccCircumference} onChange={handleChange} placeholder="e.g., 8.5 cm" />
+                                <Input label="Amount of Line Out (cm)" name="piccLineOut" value={reportData.piccLineOut} onChange={handleChange} placeholder="e.g., 2 cm" />
+                                <TextArea label="PICC Fluids Running" name="piccFluids" value={reportData.piccFluids} onChange={handleChange} placeholder="e.g., TPN + lipids, meds" />
+                                <Input label="Rate" name="piccRate" value={reportData.piccRate} onChange={handleChange} placeholder="e.g., 4.2 mL/hr" />
+                            </>
+                        )}
+
+                        {/* UVC (Umbilical Venous Catheter) Specific Fields */}
+                        {reportData.ivLineType === 'UVC' && (
+                            <>
+                                <Input label="UVC Length Visible (cm)" name="uvcLengthVisible" value={reportData.uvcLengthVisible} onChange={handleChange} placeholder="e.g., 8 cm" />
+                                <div className="col-span-full">
+                                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Proximal Lumen</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <TextArea label="Proximal Lumen Fluids" name="uvcProximalLumen" value={reportData.uvcProximalLumen} onChange={handleChange} placeholder="e.g., TPN + lipids, meds" rows="2" />
+                                        <Input label="Proximal Rate" name="uvcProximalRate" value={reportData.uvcProximalRate} onChange={handleChange} placeholder="e.g., 4.2 mL/hr" />
+                                    </div>
+                                </div>
+                                <div className="col-span-full">
+                                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Distal Lumen</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <TextArea label="Distal Lumen Fluids" name="uvcDistalLumen" value={reportData.uvcDistalLumen} onChange={handleChange} placeholder="e.g., 1 mL TPN" rows="2" />
+                                        <Input label="Distal Rate" name="uvcDistalRate" value={reportData.uvcDistalRate} onChange={handleChange} placeholder="e.g., 1 mL/hr" />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* UAC (Umbilical Arterial Catheter) Specific Fields */}
+                        {reportData.ivLineType === 'UAC' && (
+                            <>
+                                <Input label="UAC Length Visible (cm)" name="uacLengthVisible" value={reportData.uacLengthVisible} onChange={handleChange} placeholder="e.g., 10 cm" />
+                                <TextArea label="UAC Fluids Running" name="uacFluids" value={reportData.uacFluids} onChange={handleChange} placeholder="e.g., heparinized saline" />
+                                <Input label="Rate" name="uacRate" value={reportData.uacRate} onChange={handleChange} placeholder="e.g., 1 mL/hr" />
+                            </>
+                        )}
+                    </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection
+                    title="Medications"
+                    isOpen={openSection === 'medications'}
+                    toggleOpen={() => toggleSection('medications')}
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="col-span-full">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Medications</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Common Antibiotics</label>
                             <div className="grid grid-cols-2 gap-4">
                                 {/* Checkboxes use handleCheckboxChange */}
                                 <Checkbox label="Gentamicin" name="gentamicin" checked={reportData.medications?.gentamicin} onChange={handleCheckboxChange} />
@@ -850,6 +967,58 @@ const ReportSheetSection = ({ currentShiftId, babyId }) => {
                         <TextArea label="Notes" name="notes" value={reportData.notes} onChange={handleChange} placeholder="Any additional narrative (no PHI)" />
                     </div>
                 </CollapsibleSection>
+
+                {/* Intermediate-Specific Sections */}
+                {assignmentType === 'Intermediate' && (
+                    <>
+                        <CollapsibleSection
+                            title="📈 Feeding Progression & Goals"
+                            isOpen={openSection === 'feedingProgression'}
+                            toggleOpen={() => toggleSection('feedingProgression')}
+                        >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <TextArea label="Feeding Progression" name="feedingProgression" value={reportData.feedingProgression} onChange={handleChange} placeholder="e.g., Taking 30mL PO q3, tiring midway" rows="3" />
+                                <TextArea label="Feeding Goals" name="feedingGoals" value={reportData.feedingGoals} onChange={handleChange} placeholder="e.g., Increase to full PO by end of week" rows="3" />
+                                <Input label="Bottle Feeding Status" name="bottleFeedingStatus" value={reportData.bottleFeedingStatus} onChange={handleChange} placeholder="e.g., 3/4 feeds PO today" />
+                                <Input label="Breastfeeding Status" name="breastfeedingStatus" value={reportData.breastfeedingStatus} onChange={handleChange} placeholder="e.g., Latching well x10min" />
+                            </div>
+                        </CollapsibleSection>
+
+                        <CollapsibleSection
+                            title="🏠 Discharge Planning"
+                            isOpen={openSection === 'dischargePlanning'}
+                            toggleOpen={() => toggleSection('dischargePlanning')}
+                        >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <TextArea label="Discharge Goals" name="dischargeGoals" value={reportData.dischargeGoals} onChange={handleChange} placeholder="e.g., Full PO feeds, stable temps in open crib" rows="3" />
+                                <TextArea label="Discharge Criteria Remaining" name="dischargeCriteria" value={reportData.dischargeCriteria} onChange={handleChange} placeholder="e.g., Car seat test, parent CPR class" rows="3" />
+                                <Input label="Car Seat Test Status" name="carSeatTest" value={reportData.carSeatTest} onChange={handleChange} placeholder="e.g., Scheduled for tomorrow" />
+                                <TextArea label="Home Preparation" name="homePreparation" value={reportData.homePreparation} onChange={handleChange} placeholder="e.g., Parents preparing nursery, ordering supplies" rows="3" />
+                            </div>
+                        </CollapsibleSection>
+
+                        <CollapsibleSection
+                            title="👨‍👩‍👧 Parent Teaching & Involvement"
+                            isOpen={openSection === 'parentTeaching'}
+                            toggleOpen={() => toggleSection('parentTeaching')}
+                        >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <TextArea label="Parent Teaching Today" name="parentTeaching" value={reportData.parentTeaching} onChange={handleChange} placeholder="e.g., Taught bathing, diapering. Reviewed feeding cues" rows="4" />
+                                <TextArea label="Parent Involvement" name="parentInvolvement" value={reportData.parentInvolvement} onChange={handleChange} placeholder="e.g., Mom did full bath, dad gave 2 bottles" rows="4" />
+                            </div>
+                        </CollapsibleSection>
+
+                        <CollapsibleSection
+                            title="📊 Growth & Weight Goals"
+                            isOpen={openSection === 'growthGoals'}
+                            toggleOpen={() => toggleSection('growthGoals')}
+                        >
+                            <div className="grid grid-cols-1 gap-4">
+                                <TextArea label="Growth Goals & Tracking" name="growthGoals" value={reportData.growthGoals} onChange={handleChange} placeholder="e.g., Goal: 25g/day weight gain. Current: gaining 20g/day. May increase calories if no improvement" rows="4" />
+                            </div>
+                        </CollapsibleSection>
+                    </>
+                )}
             </div>
             <div className="flex justify-end mt-6">
                 <Button onClick={handleSaveReport} disabled={isSaving}>
@@ -1146,7 +1315,7 @@ const IndividualBabyReportScreen = ({ currentShift, babyId, onBack }) => {
                     </button>
                 </div>
 
-                {activeTab === 'report' && <ReportSheetSection currentShiftId={currentShift.id} babyId={baby.id} />}
+                {activeTab === 'report' && <ReportSheetSection currentShiftId={currentShift.id} babyId={baby.id} assignmentType={currentShift.assignmentType || 'ICU'} />}
                 {activeTab === 'touchTimeLogs' && <TouchTimeLogsSection currentShiftId={currentShift.id} babyId={baby.id} babyQ3StartTime={baby.babyQ3StartTime} />}
                 {activeTab === 'eventLog' && <EventLogSection currentShiftId={currentShift.id} babyId={baby.id} />}
             </div>
@@ -1155,7 +1324,26 @@ const IndividualBabyReportScreen = ({ currentShift, babyId, onBack }) => {
 };
 
 // Screen 4: End-of-Shift Summary
-const ShiftSummaryScreen = ({ currentShift, babies, allReportDetails, allTouchTimeLogs, allEventLogs, onBackToShifts }) => {
+const ShiftSummaryScreen = ({ currentShift, babies, allReportDetails, allTouchTimeLogs, allEventsData, onBackToShifts, onDeleteShift }) => {
+    const { userId } = useContext(AppContext);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteAndReturn = async () => {
+        if (!window.confirm('Are you sure you want to delete this shift? This action cannot be undone.')) {
+            return;
+        }
+        setIsDeleting(true);
+        try {
+            await deleteShift(userId, currentShift.id);
+            alert('Shift deleted successfully!');
+            onDeleteShift(); // This should clear the shift and return to setup
+        } catch (error) {
+            console.error("Error deleting shift:", error);
+            alert('Failed to delete shift. See console for details.');
+            setIsDeleting(false);
+        }
+    };
+
     const generateSummaryText = () => {
         let summary = `--- NICU Shift Report Summary ---\n`;
         summary += `Shift Date: ${currentShift.shiftDate} | Overall Shift Start Time: ${currentShift.shiftStartTime}\n\n`;
@@ -1182,7 +1370,23 @@ const ShiftSummaryScreen = ({ currentShift, babies, allReportDetails, allTouchTi
             summary += `  Resp: ${report.respiratoryMode || 'N/A'} @ ${report.respiratoryFlow || 'N/A'}L/min, ${report.respiratoryFiO2 || 'N/A'}% FiO2 | CBG/ABG Sched: ${report.cbgAbgSchedule || 'N/A'}\n`;
             summary += `  Feeds: ${report.feedsRoute || 'N/A'} ${report.feedType || 'N/A'} ${report.feedCalories || 'N/A'} ${report.feedVolume || 'N/A'} (NG/OG: ${report.ngOgTubeDetails || 'N/A'}) | Nipple: ${report.bottleNippleType || 'N/A'}\n`;
             summary += `  Feed Instr: ${report.feedSpecialInstructions || 'N/A'}\n`;
-            summary += `  IV Fluids: ${report.ivFluids || 'N/A'}\n`;
+
+            // IV Fluids - Enhanced display based on line type
+            summary += `  IV Line: ${report.ivLineType || 'N/A'} @ ${report.ivSite || 'N/A'}\n`;
+            if (report.ivLineType === 'PICC') {
+                summary += `    PICC: Circumference ${report.piccCircumference || 'N/A'}, Line out ${report.piccLineOut || 'N/A'}\n`;
+                summary += `    Fluids: ${report.piccFluids || 'N/A'} @ ${report.piccRate || 'N/A'}\n`;
+            } else if (report.ivLineType === 'UVC') {
+                summary += `    UVC Length Visible: ${report.uvcLengthVisible || 'N/A'}\n`;
+                summary += `    Proximal Lumen: ${report.uvcProximalLumen || 'N/A'} @ ${report.uvcProximalRate || 'N/A'}\n`;
+                summary += `    Distal Lumen: ${report.uvcDistalLumen || 'N/A'} @ ${report.uvcDistalRate || 'N/A'}\n`;
+            } else if (report.ivLineType === 'UAC') {
+                summary += `    UAC Length Visible: ${report.uacLengthVisible || 'N/A'}\n`;
+                summary += `    Fluids: ${report.uacFluids || 'N/A'} @ ${report.uacRate || 'N/A'}\n`;
+            } else {
+                summary += `    Fluids: ${report.ivFluidsGeneral || 'N/A'} @ ${report.ivRateGeneral || 'N/A'}\n`;
+            }
+
             const meds = report.medications ? Object.keys(report.medications).filter(key => report.medications[key] === true).join(', ') : '';
             summary += `  Medications: ${meds}${report.medications?.otherMedications ? (meds ? ', ' : '') + report.medications.otherMedications : '' || 'N/A'}\n`;
             summary += `  Labs Ordered: ${report.labsOrdered || 'N/A'}\n`;
@@ -1248,7 +1452,12 @@ const ShiftSummaryScreen = ({ currentShift, babies, allReportDetails, allTouchTi
     return (
         <div className="min-h-screen bg-gray-50 p-4">
             <div className="container mx-auto py-8">
-                <Button onClick={onBackToShifts} className="mb-6 bg-gray-600 hover:bg-gray-700">← Back to All Shifts</Button>
+                <div className="flex justify-between items-center mb-6">
+                    <Button onClick={onBackToShifts} className="bg-gray-600 hover:bg-gray-700">← Back to Dashboard</Button>
+                    <Button onClick={handleDeleteAndReturn} disabled={isDeleting} className="bg-red-600 hover:bg-red-700">
+                        {isDeleting ? 'Deleting...' : 'Delete Shift & Return'}
+                    </Button>
+                </div>
                 <h2 className="text-3xl font-bold text-gray-800 mb-6">End-of-Shift Summary</h2>
                 <p className="text-sm text-red-600 mb-4">
                     **Reminder: This summary is de-identified. Add patient PHI (Name, DOB) ONLY when charting in the hospital's official system.**
@@ -1265,7 +1474,12 @@ const ShiftSummaryScreen = ({ currentShift, babies, allReportDetails, allTouchTi
                     </div>
                 </div>
 
-                {/* Could add a detailed breakdown per baby in UI here similar to framework, but text summary is core for export */}
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                    <p className="text-sm text-yellow-800">
+                        <strong>Note:</strong> You can keep this shift data and return to the dashboard, or delete it permanently using the button above.
+                        Make sure you've copied the summary for your official charting before deleting!
+                    </p>
+                </div>
 
             </div>
         </div>
@@ -1375,10 +1589,15 @@ function MainApp() {
         setScreen('summary');
     };
 
-    // Handle going back from summary to the main shifts list (clears current shift context)
-    const handleBackToAllShifts = () => {
+    // Handle going back from summary to the dashboard (keeps current shift context)
+    const handleBackToDashboardFromSummary = () => {
+        setScreen('dashboard');
+    };
+
+    // Handle shift deletion from summary screen (clears current shift and returns to setup)
+    const handleDeleteShiftAndReturn = () => {
         setCurrentShift(null);
-        setScreen('shiftSetup'); // Or 'shiftsList' if we build a separate screen for all shifts
+        setScreen('shiftSetup');
     };
 
 
@@ -1408,7 +1627,7 @@ function MainApp() {
                     currentShift={currentShift}
                     onAddBaby={handleAddBaby}
                     onSelectBaby={handleSelectBaby}
-                    onDeleteShift={handleEndShift} // Trigger end shift which loads summary then offers delete
+                    onEndShift={handleEndShift} // Trigger end shift which loads summary
                 />
             );
         case 'addBaby':
@@ -1429,7 +1648,8 @@ function MainApp() {
                     allReportDetails={allReportsData}
                     allTouchTimeLogs={allTouchTimesData}
                     allEventsData={allEventsData}
-                    onBackToShifts={handleBackToAllShifts}
+                    onBackToShifts={handleBackToDashboardFromSummary}
+                    onDeleteShift={handleDeleteShiftAndReturn}
                 />
             );
         default:
