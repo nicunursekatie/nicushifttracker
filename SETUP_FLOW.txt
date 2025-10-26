@@ -147,9 +147,9 @@ DATABASE STRUCTURE
 
 artifacts/{appId}/users/{userId}/
   └── nicu_shifts/{shiftId}/
-      ├── shift metadata
+      ├── shiftDate, shiftStartTime, assignmentType
       └── babies/{babyId}/
-          ├── baby info
+          ├── babyName, q3StartTime, ages, growth data
           ├── reportSheet/main
           ├── touchTimeLogs/{logId}
           └── eventLogs/{eventId}
@@ -226,6 +226,7 @@ Development:
   npm run dev              # Start dev server
   npm run build            # Build for production
   npm run preview          # Preview production build
+  npm run lint             # Run ESLint checks
   npm run verify-firebase  # Verify setup
 
 Firebase:
