@@ -1,7 +1,7 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, collection, query, orderBy, onSnapshot, setDoc, addDoc, updateDoc, deleteDoc, getDoc, runTransaction } from 'firebase/firestore';
+import { getFirestore, doc, collection, query, orderBy, onSnapshot, setDoc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, writeBatch } from 'firebase/firestore';
 
 // --- Firebase Configuration & Context ---
 
@@ -101,41 +101,45 @@ const updateShift = async (userId, shiftId, shiftData) => {
     return await updateDoc(shiftRef, shiftData);
 };
 
-// Deletes a shift and its subcollections (babies, reports, etc.) using a transaction
+// Deletes a shift and its subcollections (babies, reports, etc.) using batch operations
 const deleteShift = async (userId, shiftId) => {
     if (!db || !userId) return;
     const shiftRef = doc(collection(getUserCollectionPath(userId), 'nicu_shifts'), shiftId);
 
-    // Use a transaction to delete all subcollections for a clean delete
-    await runTransaction(db, async (transaction) => {
-        const babiesQuery = query(collection(shiftRef, 'babies'));
-        const babiesSnapshot = await transaction.get(babiesQuery);
+    // Fetch all babies in the shift
+    const babiesQuery = query(collection(shiftRef, 'babies'));
+    const babiesSnapshot = await getDocs(babiesQuery);
 
-        // Delete all baby-related subcollections
-        for (const babyDoc of babiesSnapshot.docs) {
-            const babyRef = doc(shiftRef, 'babies', babyDoc.id);
+    // Use a write batch to delete all subcollections
+    const batch = writeBatch(db);
 
-            // Delete reportSheet
-            const reportSheetRef = doc(babyRef, 'reportSheet', 'main'); // Assuming single doc 'main'
-            transaction.delete(reportSheetRef);
+    // Delete all baby-related subcollections
+    for (const babyDoc of babiesSnapshot.docs) {
+        const babyRef = doc(shiftRef, 'babies', babyDoc.id);
 
-            // Delete touchTimeLogs
-            const touchTimesQuery = query(collection(babyRef, 'touchTimeLogs'));
-            const touchTimesSnapshot = await transaction.get(touchTimesQuery);
-            touchTimesSnapshot.docs.forEach(doc => transaction.delete(doc.ref));
+        // Delete reportSheet
+        const reportSheetRef = doc(babyRef, 'reportSheet', 'main');
+        batch.delete(reportSheetRef);
 
-            // Delete eventLogs
-            const eventsQuery = query(collection(babyRef, 'eventLogs'));
-            const eventsSnapshot = await transaction.get(eventsQuery);
-            eventsSnapshot.docs.forEach(doc => transaction.delete(doc.ref));
+        // Delete touchTimeLogs
+        const touchTimesQuery = query(collection(babyRef, 'touchTimeLogs'));
+        const touchTimesSnapshot = await getDocs(touchTimesQuery);
+        touchTimesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
 
-            // Delete the baby document itself
-            transaction.delete(babyRef);
-        }
+        // Delete eventLogs
+        const eventsQuery = query(collection(babyRef, 'eventLogs'));
+        const eventsSnapshot = await getDocs(eventsQuery);
+        eventsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
 
-        // Finally, delete the shift document
-        transaction.delete(shiftRef);
-    });
+        // Delete the baby document itself
+        batch.delete(babyRef);
+    }
+
+    // Finally, delete the shift document
+    batch.delete(shiftRef);
+
+    // Commit the batch
+    await batch.commit();
     console.log(`Shift ${shiftId} and its subcollections deleted.`);
 };
 
@@ -436,31 +440,16 @@ const ShiftSetupScreen = ({ onStartShift }) => {
 };
 
 // Screen 2: Baby List Dashboard
-const BabyListDashboard = ({ currentShift, onAddBaby, onSelectBaby, onDeleteShift }) => {
+const BabyListDashboard = ({ currentShift, onAddBaby, onSelectBaby, onEndShift }) => {
     const { userId, db } = useContext(AppContext);
     const [babies, setBabies] = useState([]);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deletingShift, setDeletingShift] = useState(false);
+    const [showEndShiftConfirm, setShowEndShiftConfirm] = useState(false);
 
     useEffect(() => {
         if (!userId || !currentShift?.id) return;
         const unsubscribe = getBabies(userId, currentShift.id, setBabies);
         return () => unsubscribe();
     }, [userId, currentShift?.id]);
-
-    const handleDeleteShift = async () => {
-        setDeletingShift(true);
-        try {
-            await deleteShift(userId, currentShift.id);
-            alert('Shift deleted successfully!');
-        } catch (error) {
-            console.error("Error deleting shift:", error);
-            alert('Failed to delete shift. See console for details.');
-        } finally {
-            setDeletingShift(false);
-            setShowDeleteConfirm(false);
-        }
-    };
 
     return (
         <div className="min-h-screen bg-gray-50 p-4">
@@ -498,18 +487,18 @@ const BabyListDashboard = ({ currentShift, onAddBaby, onSelectBaby, onDeleteShif
 
                 <div className="flex justify-between items-center mt-8">
                     <Button onClick={onAddBaby}>Add Baby</Button>
-                    <Button onClick={() => setShowDeleteConfirm(true)} className="bg-red-500 hover:bg-red-600 ml-4">End Shift / Delete</Button>
+                    <Button onClick={() => setShowEndShiftConfirm(true)} className="bg-indigo-500 hover:bg-indigo-600 ml-4">End Shift & View Summary</Button>
                 </div>
 
-                {showDeleteConfirm && (
+                {showEndShiftConfirm && (
                     <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
                         <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center">
-                            <p className="text-lg font-semibold mb-4">Are you sure you want to end and delete this shift?</p>
-                            <p className="text-sm text-gray-600 mb-6">This action cannot be undone and will remove all data for this shift and its babies.</p>
+                            <p className="text-lg font-semibold mb-4">Ready to end your shift?</p>
+                            <p className="text-sm text-gray-600 mb-6">You'll be able to review your shift summary, copy it for charting, and then optionally delete the shift data.</p>
                             <div className="flex justify-center space-x-4">
-                                <Button onClick={() => setShowDeleteConfirm(false)} className="bg-gray-400 hover:bg-gray-500">Cancel</Button>
-                                <Button onClick={handleDeleteShift} disabled={deletingShift} className="bg-red-600 hover:bg-red-700">
-                                    {deletingShift ? 'Deleting...' : 'Confirm Delete'}
+                                <Button onClick={() => setShowEndShiftConfirm(false)} className="bg-gray-400 hover:bg-gray-500">Cancel</Button>
+                                <Button onClick={() => { setShowEndShiftConfirm(false); onEndShift(); }} className="bg-indigo-600 hover:bg-indigo-700">
+                                    View Summary
                                 </Button>
                             </div>
                         </div>
@@ -1335,7 +1324,26 @@ const IndividualBabyReportScreen = ({ currentShift, babyId, onBack }) => {
 };
 
 // Screen 4: End-of-Shift Summary
-const ShiftSummaryScreen = ({ currentShift, babies, allReportDetails, allTouchTimeLogs, allEventLogs, onBackToShifts }) => {
+const ShiftSummaryScreen = ({ currentShift, babies, allReportDetails, allTouchTimeLogs, allEventsData, onBackToShifts, onDeleteShift }) => {
+    const { userId } = useContext(AppContext);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteAndReturn = async () => {
+        if (!window.confirm('Are you sure you want to delete this shift? This action cannot be undone.')) {
+            return;
+        }
+        setIsDeleting(true);
+        try {
+            await deleteShift(userId, currentShift.id);
+            alert('Shift deleted successfully!');
+            onDeleteShift(); // This should clear the shift and return to setup
+        } catch (error) {
+            console.error("Error deleting shift:", error);
+            alert('Failed to delete shift. See console for details.');
+            setIsDeleting(false);
+        }
+    };
+
     const generateSummaryText = () => {
         let summary = `--- NICU Shift Report Summary ---\n`;
         summary += `Shift Date: ${currentShift.shiftDate} | Overall Shift Start Time: ${currentShift.shiftStartTime}\n\n`;
@@ -1444,7 +1452,12 @@ const ShiftSummaryScreen = ({ currentShift, babies, allReportDetails, allTouchTi
     return (
         <div className="min-h-screen bg-gray-50 p-4">
             <div className="container mx-auto py-8">
-                <Button onClick={onBackToShifts} className="mb-6 bg-gray-600 hover:bg-gray-700">← Back to All Shifts</Button>
+                <div className="flex justify-between items-center mb-6">
+                    <Button onClick={onBackToShifts} className="bg-gray-600 hover:bg-gray-700">← Back to Dashboard</Button>
+                    <Button onClick={handleDeleteAndReturn} disabled={isDeleting} className="bg-red-600 hover:bg-red-700">
+                        {isDeleting ? 'Deleting...' : 'Delete Shift & Return'}
+                    </Button>
+                </div>
                 <h2 className="text-3xl font-bold text-gray-800 mb-6">End-of-Shift Summary</h2>
                 <p className="text-sm text-red-600 mb-4">
                     **Reminder: This summary is de-identified. Add patient PHI (Name, DOB) ONLY when charting in the hospital's official system.**
@@ -1461,7 +1474,12 @@ const ShiftSummaryScreen = ({ currentShift, babies, allReportDetails, allTouchTi
                     </div>
                 </div>
 
-                {/* Could add a detailed breakdown per baby in UI here similar to framework, but text summary is core for export */}
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                    <p className="text-sm text-yellow-800">
+                        <strong>Note:</strong> You can keep this shift data and return to the dashboard, or delete it permanently using the button above.
+                        Make sure you've copied the summary for your official charting before deleting!
+                    </p>
+                </div>
 
             </div>
         </div>
@@ -1571,10 +1589,15 @@ function MainApp() {
         setScreen('summary');
     };
 
-    // Handle going back from summary to the main shifts list (clears current shift context)
-    const handleBackToAllShifts = () => {
+    // Handle going back from summary to the dashboard (keeps current shift context)
+    const handleBackToDashboardFromSummary = () => {
+        setScreen('dashboard');
+    };
+
+    // Handle shift deletion from summary screen (clears current shift and returns to setup)
+    const handleDeleteShiftAndReturn = () => {
         setCurrentShift(null);
-        setScreen('shiftSetup'); // Or 'shiftsList' if we build a separate screen for all shifts
+        setScreen('shiftSetup');
     };
 
 
@@ -1604,7 +1627,7 @@ function MainApp() {
                     currentShift={currentShift}
                     onAddBaby={handleAddBaby}
                     onSelectBaby={handleSelectBaby}
-                    onDeleteShift={handleEndShift} // Trigger end shift which loads summary then offers delete
+                    onEndShift={handleEndShift} // Trigger end shift which loads summary
                 />
             );
         case 'addBaby':
@@ -1625,7 +1648,8 @@ function MainApp() {
                     allReportDetails={allReportsData}
                     allTouchTimeLogs={allTouchTimesData}
                     allEventsData={allEventsData}
-                    onBackToShifts={handleBackToAllShifts}
+                    onBackToShifts={handleBackToDashboardFromSummary}
+                    onDeleteShift={handleDeleteShiftAndReturn}
                 />
             );
         default:
