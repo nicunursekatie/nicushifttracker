@@ -96,11 +96,13 @@ The app uses Firebase for data storage. All data is stored per-user and not shar
 
 ### Quick Start
 
-**New to Firebase?** Follow our step-by-step guide:
+Choose your path:
 
-📚 **[Quick Start Guide (5 minutes)](./QUICKSTART.md)** - Fast setup for getting started
+✨ **[Already Have Firebase Auth?](./COMPLETE_DATABASE_SETUP.md)** - Complete your database setup (5 min)
 
-📖 **[Complete Setup Guide](./FIREBASE_SETUP.md)** - Detailed instructions with troubleshooting
+📚 **[Quick Start Guide](./QUICKSTART.md)** - Full setup from scratch (10-15 min)
+
+📖 **[Detailed Setup Guide](./FIREBASE_SETUP.md)** - Complete instructions with troubleshooting
 
 🗄️ **[Database Schema](./DATABASE_SCHEMA.md)** - Understanding the data structure
 
@@ -111,6 +113,26 @@ The app uses Firebase for data storage. All data is stored per-user and not shar
 - A Firebase account (free tier is sufficient for personal use)
 
 ### Setup Steps Overview
+
+#### Automated Setup (Recommended)
+
+```bash
+# 1. Clone and install
+git clone <your-repo-url>
+cd nicushifttracker
+npm install
+
+# 2. Run interactive setup
+npm run setup-database
+
+# 3. Test connection
+npm run test-database
+
+# 4. Start developing
+npm run dev
+```
+
+#### Manual Setup
 
 1. **Clone and Install**
    ```bash
@@ -147,7 +169,7 @@ The app uses Firebase for data storage. All data is stored per-user and not shar
    npm run dev
    ```
 
-For detailed instructions, see **[FIREBASE_SETUP.md](./FIREBASE_SETUP.md)**.
+For detailed instructions, see **[FIREBASE_SETUP.md](./FIREBASE_SETUP.md)** or **[COMPLETE_DATABASE_SETUP.md](./COMPLETE_DATABASE_SETUP.md)** if you already have authentication configured.
 
 ### Alternative: Manual Firebase Setup
 
