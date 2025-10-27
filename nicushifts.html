@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NICU Shift Tracker</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fff0f8;
+            color: #2d3748;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        .app {
+            max-width: 100%;
+            min-height: 100vh;
+            background: white;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff69b4, #4a90e2);
+            color: white;
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(255, 105, 180, 0.2);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+        
+        .shift-info {
+            background: #4a90e2;
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .content {
+            padding: 1rem;
+        }
+        
+        .setup-screen, .main-screen {
+            display: none;
+        }
+        
+        .setup-screen.active, .main-screen.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px; /* Prevents zoom on iOS */
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #ff69b4;
+        }
+        
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #ff69b4, #4a90e2);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #ffd93d;
+            color: #2d3748;
+        }
+        
+        .btn-secondary:hover {
+            background: #ffcc00;
+        }
+        
+        .btn-add {
+            background: #4ecdc4;
+            margin-top: 1rem;
+        }
+        
+        .btn-add:hover {
+            background: #38b5b5;
+        }
+        
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 2px solid #ecf0f1;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            position: sticky;
+            top: 60px;
+            z-index: 50;
+        }
+        
+        .tab {
+            padding: 1rem;
+            cursor: pointer;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+        
+        .tab.active {
+            border-bottom-color: #ff69b4;
+            color: #ff69b4;
+            font-weight: 600;
+        }
+        
+        .baby-card {
+            background: #fff0f8;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(255, 105, 180, 0.1);
+        }
+        
+        .baby-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .baby-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #ff69b4;
+        }
+        
+        .baby-info {
+            font-size: 0.9rem;
+            color: #6b5f67;
+        }
+        
+        .touch-times {
+            margin-top: 1rem;
+        }
+        
+        .touch-time-card {
+            background: white;
+            border: 2px solid #ffb6e1;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .touch-time-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .touch-time-label {
+            font-weight: 600;
+            color: #4a90e2;
+        }
+        
+        .touch-time-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #ffd93d;
+            color: #2d3748;
+        }
+        
+        .status-complete {
+            background: #4ecdc4;
+            color: white;
+        }
+        
+        .accordion {
+            margin-top: 1rem;
+        }
+        
+        .accordion-header {
+            background: #f4d8e6;
+            padding: 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: #ff69b4;
+        }
+        
+        .accordion-content {
+            padding: 1rem;
+            display: none;
+        }
+        
+        .accordion-content.active {
+            display: block;
+        }
+        
+        .field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        
+        .field-grid.single {
+            grid-template-columns: 1fr;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .checkbox-group input {
+            width: auto;
+            margin-right: 0.5rem;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .quick-input {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .quick-btn {
+            padding: 0.5rem;
+            border: 2px solid #ecf0f1;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        
+        .quick-btn:hover {
+            border-color: #3498db;
+            background: #ebf5fb;
+        }
+        
+        .export-section {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="header">
+            <h1>NICU Shift Tracker</h1>
+        </div>
+        
+        <!-- Shift Setup Screen -->
+        <div class="setup-screen active" id="setupScreen">
+            <div class="content">
+                <h2>Welcome to NICU Shift Tracker</h2>
+                <p style="margin-bottom: 2rem;">Each baby will have their own individual touch time schedule.</p>
+                <button class="btn" onclick="startShift()">Start Tracking</button>
+                
+                <div style="margin-top: 2rem;">
+                    <button class="btn btn-secondary" onclick="loadPreviousShift()">Load Previous Shift</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main App Screen -->
+        <div class="main-screen" id="mainScreen">
+            <div class="shift-info" id="shiftInfo">
+                Shift: <span id="shiftTimeDisplay"></span> | Touch Times: <span id="touchTimesDisplay"></span>
+            </div>
+            
+            <div class="tabs" id="babyTabs">
+                <div class="tab" onclick="showAddBabyModal()">+ Add Baby</div>
+            </div>
+            
+            <div class="content" id="mainContent">
+                <!-- Baby content will be dynamically inserted here -->
+            </div>
+            
+            <div class="export-section">
+                <h3>End of Shift</h3>
+                <button class="btn" onclick="exportShiftReport()">Export Shift Report</button>
+                <button class="btn btn-secondary" onclick="saveShift()">Save Shift Data</button>
+            </div>
+        </div>
+        
+        <!-- Add Baby Modal -->
+        <div class="modal" id="addBabyModal">
+            <div class="modal-content">
+                <h2>Add New Baby</h2>
+                <div class="form-group">
+                    <label>Baby Identifier:</label>
+                    <input type="text" id="babyName" placeholder="Baby 1" value="">
+                </div>
+                <div class="form-group">
+                    <label>Notes/Description (optional):</label>
+                    <input type="text" id="babyBed" placeholder="Twin A, 39 weeker, etc.">
+                </div>
+                <div class="field-grid">
+                    <div class="form-group">
+                        <label>Gestational Age at Birth:</label>
+                        <input type="text" id="babyGA" placeholder="32+3" onchange="calculateDOL()">
+                    </div>
+                    <div class="form-group">
+                        <label>Current Corrected GA:</label>
+                        <input type="text" id="babyCGA" placeholder="33+5" onchange="calculateDOL()">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Days of Life (auto-calculated):</label>
+                    <input type="text" id="babyDOL" placeholder="Will calculate from GA" readonly style="background: #f0f0f0;">
+                </div>
+                <div class="form-group">
+                    <label>Touch Time Schedule:</label>
+                    <select id="babyTouchSchedule">
+                        <option value="08:00">8:00, 11:00, 14:00, 17:00</option>
+                        <option value="08:30" selected>8:30, 11:30, 14:30, 17:30</option>
+                        <option value="09:00">9:00, 12:00, 15:00, 18:00</option>
+                        <option value="custom">Custom Times (enter manually)</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="addBaby()">Add Baby</button>
+                <button class="btn btn-secondary" onclick="closeModal('addBabyModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // App State
+        let appState = {
+            shiftStart: null,
+            touchTimes: [],
+            babies: [],
+            currentBabyIndex: 0
+        };
+        
+        // Initialize
+        function init() {
+            // Check for saved state
+            const savedState = localStorage.getItem('nicuShiftState');
+            if (savedState) {
+                appState = JSON.parse(savedState);
+                if (appState.shiftStart) {
+                    document.getElementById('setupScreen').classList.remove('active');
+                    document.getElementById('mainScreen').classList.add('active');
+                    updateShiftDisplay();
+                    renderBabies();
+                }
+            }
+        }
+        
+        // Start Shift
+        function startShift() {
+            appState.shiftStart = new Date().toLocaleTimeString();
+            
+            document.getElementById('setupScreen').classList.remove('active');
+            document.getElementById('mainScreen').classList.add('active');
+            
+            updateShiftDisplay();
+            saveState();
+        }
+        
+        // Generate Touch Times (q3 hours for standard schedule)
+        function generateTouchTimes(startTime) {
+            // These are the standardized touch time schedules
+            const schedules = {
+                '08:00': ['08:00', '11:00', '14:00', '17:00', '20:00', '23:00', '02:00', '05:00'],
+                '08:30': ['08:30', '11:30', '14:30', '17:30', '20:30', '23:30', '02:30', '05:30'],
+                '09:00': ['09:00', '12:00', '15:00', '18:00', '21:00', '00:00', '03:00', '06:00']
+            };
+            
+            // Return the first 4 touch times for a 12-hour shift
+            return schedules[startTime].slice(0, 4);
+        }
+        
+        // Update Shift Display
+        function updateShiftDisplay() {
+            document.getElementById('shiftTimeDisplay').textContent = appState.shiftStart || 'Not started';
+            document.getElementById('touchTimesDisplay').textContent = `Track ${appState.babies.length} baby/babies`;
+        }
+        
+        // Calculate Days of Life from GA difference
+        function calculateDOL() {
+            const ga = document.getElementById('babyGA').value;
+            const cga = document.getElementById('babyCGA').value;
+            
+            if (ga && cga) {
+                // Parse GA format (e.g., "32+3" = 32 weeks 3 days)
+                const parseGA = (gaStr) => {
+                    const parts = gaStr.split('+');
+                    const weeks = parseInt(parts[0]) || 0;
+                    const days = parseInt(parts[1]) || 0;
+                    return weeks * 7 + days;
+                };
+                
+                const gaDays = parseGA(ga);
+                const cgaDays = parseGA(cga);
+                const dol = cgaDays - gaDays;
+                
+                if (dol >= 0) {
+                    document.getElementById('babyDOL').value = dol;
+                }
+            }
+        }
+        
+        // Show Add Baby Modal
+        function showAddBabyModal() {
+            // Auto-suggest next baby number
+            const nextNumber = appState.babies.length + 1;
+            document.getElementById('babyName').value = `Baby ${nextNumber}`;
+            document.getElementById('babyBed').value = '';
+            document.getElementById('babyGA').value = '';
+            document.getElementById('babyCGA').value = '';
+            document.getElementById('babyDOL').value = '';
+            document.getElementById('babyTouchSchedule').value = '08:30';
+            document.getElementById('addBabyModal').classList.add('active');
+        }
+        
+        // Close Modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
+        // Add Baby
+        function addBaby() {
+            // Get selected touch time schedule
+            const scheduleSelect = document.getElementById('babyTouchSchedule').value;
+            const babyTouchTimes = generateTouchTimes(scheduleSelect);
+            
+            const baby = {
+                id: Date.now(),
+                name: document.getElementById('babyName').value,
+                bed: document.getElementById('babyBed').value,
+                ga: document.getElementById('babyGA').value,
+                dol: document.getElementById('babyDOL').value,
+                cga: document.getElementById('babyCGA').value,
+                touchTimes: babyTouchTimes, // Each baby has their own touch times
+                reportSheet: {
+                    maternalHistory: '',
+                    currentProblems: '',
+                    respiratory: {
+                        mode: 'RA',
+                        flow: '',
+                        fio2: '',
+                        schedule: ''
+                    },
+                    feeds: {
+                        route: 'PO',
+                        type: '',
+                        calories: '',
+                        volume: '',
+                        instructions: ''
+                    },
+                    iv: {
+                        site: '',
+                        fluids: '',
+                        rate: ''
+                    },
+                    medications: '',
+                    labs: '',
+                    plan: '',
+                    notes: ''
+                },
+                touchTimeLogs: {},
+                events: []
+            };
+            
+            // Initialize touch time logs based on this baby's schedule
+            baby.touchTimes.forEach(time => {
+                baby.touchTimeLogs[time] = {
+                    complete: false,
+                    temp: '',
+                    hr: '',
+                    rr: '',
+                    spo2: '',
+                    feed: '',
+                    residual: '',
+                    diaper: '',
+                    positioning: '',
+                    lineCheck: '',
+                    comments: ''
+                };
+            });
+            
+            appState.babies.push(baby);
+            appState.currentBabyIndex = appState.babies.length - 1;
+            
+            closeModal('addBabyModal');
+            renderBabies();
+            saveState();
+        }
+        
+        // Render Babies
+        function renderBabies() {
+            const tabsContainer = document.getElementById('babyTabs');
+            const contentContainer = document.getElementById('mainContent');
+            
+            // Clear existing tabs (except Add Baby)
+            tabsContainer.innerHTML = '<div class="tab" onclick="showAddBabyModal()">+ Add Baby</div>';
+            
+            // Add baby tabs
+            appState.babies.forEach((baby, index) => {
+                const tab = document.createElement('div');
+                tab.className = `tab ${index === appState.currentBabyIndex ? 'active' : ''}`;
+                tab.textContent = baby.name;
+                tab.onclick = () => selectBaby(index);
+                tabsContainer.insertBefore(tab, tabsContainer.lastChild);
+            });
+            
+            // Render current baby content
+            if (appState.babies.length > 0) {
+                renderBabyContent(appState.babies[appState.currentBabyIndex]);
+            } else {
+                contentContainer.innerHTML = '<p style="text-align: center; color: #7f8c8d;">Add a baby to get started</p>';
+            }
+        }
+        
+        // Select Baby
+        function selectBaby(index) {
+            appState.currentBabyIndex = index;
+            renderBabies();
+        }
+        
+        // Render Baby Content
+        function renderBabyContent(baby) {
+            const content = document.getElementById('mainContent');
+            content.innerHTML = `
+                <div class="baby-card">
+                    <div class="baby-header">
+                        <div>
+                            <div class="baby-name">${baby.name}</div>
+                            <div class="baby-info">GA: ${baby.ga} | CGA: ${baby.cga} | DOL: ${baby.dol}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Report Sheet Section -->
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <span>👩 Maternal History</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="field-grid">
+                                <div>
+                                    <label style="font-size: 0.9rem;">Age:</label>
+                                    <input type="number" id="momAge" placeholder="23" onchange="updateMaternalHistory()">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.9rem;">G_P_:</label>
+                                    <input type="text" id="gpStatus" placeholder="G1P0" onchange="updateMaternalHistory()">
+                                </div>
+                            </div>
+                            
+                            <div class="field-grid" style="margin-top: 0.5rem;">
+                                <div>
+                                    <label style="font-size: 0.9rem;">Delivery:</label>
+                                    <select id="deliveryType" onchange="updateMaternalHistory()">
+                                        <option value="">Select...</option>
+                                        <option value="SVD">SVD</option>
+                                        <option value="C/S">C/S</option>
+                                        <option value="Vacuum">Vacuum</option>
+                                        <option value="Forceps">Forceps</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.9rem;">Reason:</label>
+                                    <select id="deliveryReason" onchange="updateMaternalHistory()">
+                                        <option value="">Select...</option>
+                                        <option value="PTL">Preterm Labor</option>
+                                        <option value="PPROM">PPROM</option>
+                                        <option value="Pre-E">Pre-eclampsia</option>
+                                        <option value="PIH">PIH</option>
+                                        <option value="Abruption">Abruption</option>
+                                        <option value="Bleeding">Bleeding</option>
+                                        <option value="NRFHT">NRFHT</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 0.5rem;">
+                                <label style="font-size: 0.9rem;">Maternal Conditions:</label>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="gdm" onchange="updateMaternalHistory()">
+                                    <label for="gdm">GDM</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="dm1" onchange="updateMaternalHistory()">
+                                    <label for="dm1">Type 1 DM</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="dm2" onchange="updateMaternalHistory()">
+                                    <label for="dm2">Type 2 DM</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="insulin" onchange="updateMaternalHistory()">
+                                    <label for="insulin">Insulin dependent</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="mag" onchange="updateMaternalHistory()">
+                                    <label for="mag">On Mag</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="steroids" onchange="updateMaternalHistory()">
+                                    <label for="steroids">Steroids given</label>
+                                </div>
+                            </div>
+                            
+                            <textarea id="maternalHistory" style="margin-top: 0.5rem;" placeholder="Additional maternal history...">${baby.reportSheet.maternalHistory}</textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <span>👶 Baby History</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="breech" onchange="updateBabyHistory()">
+                                <label for="breech">Breech</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="surfactant" onchange="updateBabyHistory()">
+                                <label for="surfactant">Surfactant given</label>
+                                <input type="number" id="surfactantDoses" placeholder="# doses" style="width: 80px; margin-left: 0.5rem;" onchange="updateBabyHistory()">
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="ventHistory" onchange="toggleVentHistory()">
+                                <label for="ventHistory">Vent history</label>
+                            </div>
+                            
+                            <div id="ventHistoryDetails" style="display: none; margin-left: 2rem; margin-top: 0.5rem; padding: 0.5rem; background: #f0f0f0; border-radius: 8px;">
+                                <div class="field-grid">
+                                    <div>
+                                        <label style="font-size: 0.9rem;">Vent Type:</label>
+                                        <select id="ventHistoryType">
+                                            <option value="">Select...</option>
+                                            <option value="Conventional">Conventional</option>
+                                            <option value="Oscillator">Oscillator</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.9rem;">Off Date:</label>
+                                        <input type="date" id="ventOffDate">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 0.5rem;">
+                                <label style="font-size: 0.9rem;">Admission meds given:</label>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="hepB" onchange="updateBabyHistory()">
+                                    <label for="hepB">Hep B</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="vitK" onchange="updateBabyHistory()">
+                                    <label for="vitK">Vitamin K</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="eyeOintment" onchange="updateBabyHistory()">
+                                    <label for="eyeOintment">Erythromycin eye ointment</label>
+                                </div>
+                            </div>
+                            
+                            <textarea id="babyHistoryNotes" style="margin-top: 0.5rem;" placeholder="Additional baby history...">${baby.reportSheet.babyHistoryNotes || ''}</textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)" style="background: #e8f4f8;">
+                            <span>🫁 Current Respiratory Status</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="field-grid">
+                                <div>
+                                    <label>Mode:</label>
+                                    <select id="respMode" onchange="updateRespiratory()">
+                                        <option value="RA">Room Air</option>
+                                        <option value="LF-NC">Low Flow Nasal Cannula</option>
+                                        <option value="HHHF">Heated Hi Flow</option>
+                                        <option value="Bubble">Bubble CPAP</option>
+                                        <option value="Optibubble">Optibubble</option>
+                                        <option value="NI-NAVA">Noninvasive NAVA</option>
+                                        <option value="I-NAVA">Invasive NAVA</option>
+                                        <option value="Vent-Conv">Vent: Conventional</option>
+                                        <option value="Vent-Osc">Vent: Oscillator</option>
+                                    </select>
+                                </div>
+                                <div id="fio2Container">
+                                    <label>FiO₂ Range:</label>
+                                    <input type="text" id="fio2Range" placeholder="21-30%" onchange="updateRespiratory()">
+                                </div>
+                            </div>
+                            
+                            <!-- Conditional fields for Low Flow NC -->
+                            <div id="lfncSettings" style="display: none; margin-top: 0.5rem;">
+                                <label>Flow (L/min):</label>
+                                <input type="text" id="lfncFlow" placeholder="0.5L" onchange="updateRespiratory()">
+                            </div>
+                            
+                            <!-- Conditional fields for Heated Hi Flow -->
+                            <div id="hhhfSettings" style="display: none; margin-top: 0.5rem;">
+                                <div class="field-grid">
+                                    <div>
+                                        <label>Flow (L/min):</label>
+                                        <input type="text" id="hhhfFlow" placeholder="4L" onchange="updateRespiratory()">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Conditional fields for Bubble/Optibubble -->
+                            <div id="bubbleSettings" style="display: none; margin-top: 0.5rem;">
+                                <label>CPAP Level:</label>
+                                <input type="text" id="cpapLevel" placeholder="5" onchange="updateRespiratory()">
+                            </div>
+                            
+                            <!-- Conditional fields for NAVA (both types) -->
+                            <div id="navaSettings" style="display: none; margin-top: 0.5rem;">
+                                <div class="field-grid">
+                                    <div>
+                                        <label>NAVA Level:</label>
+                                        <input type="text" id="navaLevel" placeholder="1.0" onchange="updateRespiratory()">
+                                    </div>
+                                    <div>
+                                        <label>PEEP:</label>
+                                        <input type="text" id="navaPeep" placeholder="5" onchange="updateRespiratory()">
+                                    </div>
+                                </div>
+                                <div id="invasiveNavaFields" style="display: none; margin-top: 0.5rem;">
+                                    <label>ET Tube:</label>
+                                    <input type="text" id="navaETTube" placeholder="3.5 @ 9cm" onchange="updateRespiratory()">
+                                </div>
+                            </div>
+                            
+                            <!-- Conditional fields for Conventional Ventilator -->
+                            <div id="conventionalVentSettings" style="display: none; margin-top: 0.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                                <div class="field-grid">
+                                    <div>
+                                        <label>ET Tube:</label>
+                                        <input type="text" id="convETTube" placeholder="3.5 @ 9cm" onchange="updateRespiratory()">
+                                    </div>
+                                    <div>
+                                        <label>Mode:</label>
+                                        <select id="convVentMode" onchange="updateRespiratory()">
+                                            <option value="">Select...</option>
+                                            <option value="SIMV">SIMV</option>
+                                            <option value="AC">AC</option>
+                                            <option value="PSV">PSV</option>
+                                            <option value="PRVC">PRVC</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="field-grid" style="margin-top: 0.5rem;">
+                                    <div>
+                                        <label>Rate:</label>
+                                        <input type="text" id="convRate" placeholder="30" onchange="updateRespiratory()">
+                                    </div>
+                                    <div>
+                                        <label>PIP:</label>
+                                        <input type="text" id="convPIP" placeholder="18" onchange="updateRespiratory()">
+                                    </div>
+                                </div>
+                                <div class="field-grid" style="margin-top: 0.5rem;">
+                                    <div>
+                                        <label>PEEP:</label>
+                                        <input type="text" id="convPEEP" placeholder="5" onchange="updateRespiratory()">
+                                    </div>
+                                    <div>
+                                        <label>I-Time:</label>
+                                        <input type="text" id="convITime" placeholder="0.35" onchange="updateRespiratory()">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Conditional fields for Oscillator -->
+                            <div id="oscillatorVentSettings" style="display: none; margin-top: 0.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                                <div class="field-grid">
+                                    <div>
+                                        <label>ET Tube:</label>
+                                        <input type="text" id="oscETTube" placeholder="3.5 @ 9cm" onchange="updateRespiratory()">
+                                    </div>
+                                    <div>
+                                        <label>Hz:</label>
+                                        <input type="text" id="oscHz" placeholder="10" onchange="updateRespiratory()">
+                                    </div>
+                                </div>
+                                <div class="field-grid" style="margin-top: 0.5rem;">
+                                    <div>
+                                        <label>Amplitude:</label>
+                                        <input type="text" id="oscAmp" placeholder="20" onchange="updateRespiratory()">
+                                    </div>
+                                    <div>
+                                        <label>MAP:</label>
+                                        <input type="text" id="oscMAP" placeholder="10" onchange="updateRespiratory()">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group" style="margin-top: 0.5rem;">
+                                <label>Respiratory Notes:</label>
+                                <textarea id="respNotes" placeholder="Frequent desats, desats on right side, etc." onchange="updateRespiratory()">${baby.reportSheet.respiratory.notes || ''}</textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>ABG/CBG Schedule:</label>
+                                <select id="gasSchedule" onchange="updateRespiratory()">
+                                    <option value="">No gases</option>
+                                    <option value="q shift">q shift</option>
+                                    <option value="q day">q day</option>
+                                    <option value="Sun/Tues/Fri">Sunday, Tuesday, Friday</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <span>🍼 Current Feeds</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="field-grid">
+                                <div>
+                                    <label>Route:</label>
+                                    <select id="feedRoute" onchange="updateFeeds()">
+                                        <option value="NG">NG only</option>
+                                        <option value="OG">OG only</option>
+                                        <option value="IDF">IDF Protocol</option>
+                                        <option value="PO-order">PO per order</option>
+                                        <option value="NPO">NPO</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label>Volume:</label>
+                                    <input type="text" id="feedVolume" value="${baby.reportSheet.feeds.volume}" placeholder="45ml q3h" onchange="updateFeeds()">
+                                </div>
+                            </div>
+                            
+                            <!-- Conditional NG/OG tube info -->
+                            <div id="tubeInfo" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f0f0f0; border-radius: 8px;">
+                                <div class="field-grid">
+                                    <div>
+                                        <label>Tube Size:</label>
+                                        <input type="text" id="tubeSize" placeholder="6Fr" onchange="updateFeeds()">
+                                    </div>
+                                    <div>
+                                        <label>Depth:</label>
+                                        <input type="text" id="tubeDepth" placeholder="12cm" onchange="updateFeeds()">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- IDF Protocol Details -->
+                            <div id="idfDetails" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #e8f4f8; border-radius: 8px;">
+                                <label style="font-size: 0.9rem; font-weight: 600;">IDF Protocol Status:</label>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="idf24hr" onchange="updateFeeds()">
+                                    <label for="idf24hr">24hr threshold met (quality scores 1-2)</label>
+                                </div>
+                                <div style="margin-top: 0.5rem;">
+                                    <label style="font-size: 0.9rem;">If not met, document readiness scores only</label>
+                                    <label style="font-size: 0.9rem;">If met, score readiness before each feed & quality after</label>
+                                </div>
+                            </div>
+                            
+                            <!-- PO per order details -->
+                            <div id="poOrderDetails" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f0f0f0; border-radius: 8px;">
+                                <label style="font-size: 0.9rem;">PO Feeding Order:</label>
+                                <input type="text" id="poOrder" placeholder="PO BID with day shift" onchange="updateFeeds()">
+                            </div>
+                            
+                            <div class="field-grid" style="margin-top: 0.5rem;">
+                                <div>
+                                    <label>Type:</label>
+                                    <select id="feedType" onchange="updateFeedType()">
+                                        <option value="">Select...</option>
+                                        <option value="Breastmilk">Breastmilk (20 cal)</option>
+                                        <option value="Donor">Donor Milk (20 cal)</option>
+                                        <option value="Fortified BM">Fortified Breastmilk</option>
+                                        <option value="NeuroPro">NeuroPro (20 cal)</option>
+                                        <option value="Enfacare">Enfacare (22 cal)</option>
+                                        <option value="EPrem24">Enfamil Premature (24 cal)</option>
+                                        <option value="EPremHP">Enfamil Premature HP (24 cal)</option>
+                                        <option value="EnfamilAR">Enfamil AR (20 cal)</option>
+                                        <option value="Gentlease">Enfamil Gentlease (20 cal)</option>
+                                    </select>
+                                </div>
+                                <div id="caloriesField" style="display: none;">
+                                    <label>Calories:</label>
+                                    <input type="text" id="feedCalories" value="${baby.reportSheet.feeds.calories}" placeholder="24 cal" onchange="updateFeeds()">
+                                </div>
+                            </div>
+                            
+                            <!-- Conditional fortification details -->
+                            <div id="fortificationDetails" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f0f0f0; border-radius: 8px;">
+                                <label style="font-size: 0.9rem; font-weight: 600;">Fortification Method:</label>
+                                <select id="fortMethod" onchange="updateFortification()">
+                                    <option value="">Select...</option>
+                                    <option value="Prolacta +6">Prolacta +6</option>
+                                    <option value="Prolacta +8">Prolacta +8</option>
+                                    <option value="Prolacta +8 with cream">Prolacta +8 with cream</option>
+                                    <option value="HMF 22">HMF 22 cal</option>
+                                    <option value="HMF 24">HMF 24 cal</option>
+                                    <option value="HMF 26">HMF 26 cal</option>
+                                    <option value="Enfacare">Enfacare powder</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                
+                                <!-- Enfacare recipe -->
+                                <div id="enfacareRecipe" style="display: none; margin-top: 0.5rem;">
+                                    <label style="font-size: 0.9rem;">Enfacare Recipe:</label>
+                                    <div class="field-grid">
+                                        <div>
+                                            <input type="text" id="enfacareML" placeholder="100ml">
+                                        </div>
+                                        <div>
+                                            <input type="text" id="enfacareAmount" placeholder="2 scoops">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Other fortification -->
+                                <div id="otherFortification" style="display: none; margin-top: 0.5rem;">
+                                    <input type="text" id="fortOther" placeholder="Describe fortification method">
+                                </div>
+                            </div>
+                            
+                            <!-- Thickening details -->
+                            <div class="checkbox-group" style="margin-top: 0.5rem;">
+                                <input type="checkbox" id="isThickened" onchange="toggleThickening()">
+                                <label for="isThickened">Thickened feeds</label>
+                            </div>
+                            <div id="thickeningDetails" style="display: none; margin-left: 2rem; padding: 0.5rem; background: #f0f0f0; border-radius: 8px;">
+                                <div class="field-grid">
+                                    <div>
+                                        <label style="font-size: 0.9rem;">Thickened with:</label>
+                                        <select id="thickenAgent" onchange="updateFeeds()">
+                                            <option value="">Select...</option>
+                                            <option value="Rice cereal">Rice cereal</option>
+                                            <option value="Oatmeal">Oatmeal</option>
+                                            <option value="Gel-Mix">Gel-Mix</option>
+                                            <option value="Simply Thick">Simply Thick</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.9rem;">Recipe:</label>
+                                        <input type="text" id="thickenRecipe" placeholder="1 tsp per 30ml" onchange="updateFeeds()">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group" style="margin-top: 0.5rem;">
+                                <label>Special Instructions:</label>
+                                <input type="text" id="feedInstructions" value="${baby.reportSheet.feeds.instructions}" placeholder="Hold if RR > 70" onchange="updateFeeds()">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <span>💉 IV Access & Lines</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="form-group">
+                                <label>Peripheral IV:</label>
+                                <div class="field-grid">
+                                    <div>
+                                        <label style="font-size: 0.9rem;">Site:</label>
+                                        <input type="text" id="pivSite" placeholder="Right hand" onchange="updateLines()">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.9rem;">Gauge:</label>
+                                        <input type="text" id="pivGauge" placeholder="24G" onchange="updateLines()">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>PICC Line:</label>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="hasPICC" onchange="togglePICC()">
+                                    <label for="hasPICC">PICC present</label>
+                                </div>
+                                <div id="piccDetails" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f0f0f0; border-radius: 8px;">
+                                    <div class="field-grid">
+                                        <div>
+                                            <label style="font-size: 0.9rem;">Location:</label>
+                                            <input type="text" id="piccLocation" placeholder="Right arm" onchange="updateLines()">
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 0.9rem;">Line Out:</label>
+                                            <input type="text" id="piccOut" placeholder="5cm" onchange="updateLines()">
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="margin-top: 0.5rem;">
+                                        <label style="font-size: 0.9rem;">Circumference:</label>
+                                        <input type="text" id="piccCirc" placeholder="15cm" onchange="updateLines()">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Umbilical Lines:</label>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="hasUVC" onchange="toggleUVC()">
+                                    <label for="hasUVC">UVC present</label>
+                                </div>
+                                <div id="uvcDetails" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f0f0f0; border-radius: 8px;">
+                                    <div class="form-group">
+                                        <label style="font-size: 0.9rem;">Length visible:</label>
+                                        <input type="text" id="uvcLength" placeholder="8cm" onchange="updateLines()">
+                                    </div>
+                                    <div class="form-group">
+                                        <label style="font-size: 0.9rem;">Proximal lumen:</label>
+                                        <textarea id="uvcProximal" placeholder="TPN @ 5ml/hr, Lipids @ 0.5ml/hr" onchange="updateLines()"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label style="font-size: 0.9rem;">Distal lumen:</label>
+                                        <input type="text" id="uvcDistal" placeholder="1ml TPN" onchange="updateLines()">
+                                    </div>
+                                </div>
+                                
+                                <div class="checkbox-group" style="margin-top: 0.5rem;">
+                                    <input type="checkbox" id="hasUAC" onchange="toggleUAC()">
+                                    <label for="hasUAC">UAC present</label>
+                                </div>
+                                <div id="uacDetails" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f0f0f0; border-radius: 8px;">
+                                    <div class="form-group">
+                                        <label style="font-size: 0.9rem;">Length visible:</label>
+                                        <input type="text" id="uacLength" placeholder="10cm" onchange="updateLines()">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>IV Fluids:</label>
+                                <textarea id="ivFluids" placeholder="D10W @ 80ml/kg/day&#10;TPN @ 5ml/hr" onchange="updateLines()">${baby.reportSheet.iv?.fluids || ''}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <span>💊 Medications & Plan</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="form-group">
+                                <label>Medications:</label>
+                                <textarea onchange="updateReportSheet('medications', this.value)">${baby.reportSheet.medications}</textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Labs Ordered:</label>
+                                <textarea placeholder="CBC @ 0600, CRP in AM" onchange="updateReportSheet('labs', this.value)">${baby.reportSheet.labs}</textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Treatment Plan:</label>
+                                <textarea onchange="updateReportSheet('plan', this.value)">${baby.reportSheet.plan}</textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Additional Notes:</label>
+                                <textarea onchange="updateReportSheet('notes', this.value)">${baby.reportSheet.notes}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Touch Times Section -->
+                    <div class="touch-times">
+                        <h3>Touch Times: ${baby.touchTimes ? baby.touchTimes.join(' → ') : 'Schedule not set'}</h3>
+                        ${baby.touchTimes ? baby.touchTimes.map(time => `
+                            <div class="touch-time-card">
+                                <div class="touch-time-header">
+                                    <span class="touch-time-label">${time}</span>
+                                    <span class="touch-time-status ${baby.touchTimeLogs[time] && baby.touchTimeLogs[time].complete ? 'status-complete' : 'status-pending'}">
+                                        ${baby.touchTimeLogs[time] && baby.touchTimeLogs[time].complete ? 'Complete' : 'Pending'}
+                                    </span>
+                                </div>
+                                <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="openTouchTimeModal('${time}')">
+                                    ${baby.touchTimeLogs[time] && baby.touchTimeLogs[time].complete ? 'Edit' : 'Log'} Touch Time
+                                </button>
+                            </div>
+                        `).join('') : '<p>No touch times set for this baby</p>'}
+                    </div>
+                    
+                    <!-- Events Section -->
+                    <div style="margin-top: 2rem;">
+                        <h3>Events</h3>
+                        <button class="btn btn-add" onclick="addEvent()">+ Add Event</button>
+                        <div id="eventsList" style="margin-top: 1rem;">
+                            ${baby.events.map(event => `
+                                <div class="touch-time-card">
+                                    <strong>${event.time}</strong> - ${event.type}: ${event.description}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Toggle Vent History Details
+        function toggleVentHistory() {
+            const checked = document.getElementById('ventHistory').checked;
+            document.getElementById('ventHistoryDetails').style.display = checked ? 'block' : 'none';
+            updateBabyHistory();
+        }
+        
+        // Update Respiratory Settings
+        function updateRespiratory() {
+            const mode = document.getElementById('respMode').value;
+            
+            // Hide all conditional fields first
+            document.getElementById('lfncSettings').style.display = 'none';
+            document.getElementById('hhhfSettings').style.display = 'none';
+            document.getElementById('bubbleSettings').style.display = 'none';
+            document.getElementById('navaSettings').style.display = 'none';
+            document.getElementById('invasiveNavaFields').style.display = 'none';
+            document.getElementById('conventionalVentSettings').style.display = 'none';
+            document.getElementById('oscillatorVentSettings').style.display = 'none';
+            
+            // Hide FiO2 for room air
+            document.getElementById('fio2Container').style.display = mode === 'RA' ? 'none' : 'block';
+            
+            // Show relevant fields based on mode
+            switch(mode) {
+                case 'LF-NC':
+                    document.getElementById('lfncSettings').style.display = 'block';
+                    break;
+                case 'HHHF':
+                    document.getElementById('hhhfSettings').style.display = 'block';
+                    break;
+                case 'Bubble':
+                case 'Optibubble':
+                    document.getElementById('bubbleSettings').style.display = 'block';
+                    break;
+                case 'NI-NAVA':
+                    document.getElementById('navaSettings').style.display = 'block';
+                    break;
+                case 'I-NAVA':
+                    document.getElementById('navaSettings').style.display = 'block';
+                    document.getElementById('invasiveNavaFields').style.display = 'block';
+                    break;
+                case 'Vent-Conv':
+                    document.getElementById('conventionalVentSettings').style.display = 'block';
+                    break;
+                case 'Vent-Osc':
+                    document.getElementById('oscillatorVentSettings').style.display = 'block';
+                    break;
+            }
+            
+            // Update baby's respiratory data
+            if (appState.babies[appState.currentBabyIndex]) {
+                const baby = appState.babies[appState.currentBabyIndex];
+                baby.reportSheet.respiratory.mode = mode;
+                baby.reportSheet.respiratory.fio2Range = document.getElementById('fio2Range').value;
+                baby.reportSheet.respiratory.notes = document.getElementById('respNotes').value;
+                
+                saveState();
+            }
+        }
+        
+        // Update Vent Settings (removed - no longer needed)
+        
+        // Update Feed Type
+        function updateFeedType() {
+            const feedType = document.getElementById('feedType').value;
+            
+            // Show fortification details for fortified BM
+            document.getElementById('fortificationDetails').style.display = 
+                feedType === 'Fortified BM' ? 'block' : 'none';
+            
+            // Show calories field only for fortified BM (since it varies)
+            document.getElementById('caloriesField').style.display = 
+                feedType === 'Fortified BM' ? 'block' : 'none';
+            
+            // Auto-set calories for non-fortified options
+            const calorieMap = {
+                'Breastmilk': '20',
+                'Donor': '20',
+                'NeuroPro': '20',
+                'Enfacare': '22',
+                'EPrem24': '24',
+                'EPremHP': '24',
+                'EnfamilAR': '20',
+                'Gentlease': '20'
+            };
+            
+            if (calorieMap[feedType]) {
+                document.getElementById('feedCalories').value = calorieMap[feedType];
+            }
+            
+            updateFeeds();
+        }
+        
+        // Update Fortification
+        function updateFortification() {
+            const method = document.getElementById('fortMethod').value;
+            
+            // Hide all conditional fields first
+            document.getElementById('enfacareRecipe').style.display = 'none';
+            document.getElementById('otherFortification').style.display = 'none';
+            
+            // Show relevant fields
+            if (method === 'Enfacare') {
+                document.getElementById('enfacareRecipe').style.display = 'block';
+            } else if (method === 'Other') {
+                document.getElementById('otherFortification').style.display = 'block';
+            }
+            
+            updateFeeds();
+        }
+        
+        // Toggle Thickening
+        function toggleThickening() {
+            const checked = document.getElementById('isThickened').checked;
+            document.getElementById('thickeningDetails').style.display = checked ? 'block' : 'none';
+            updateFeeds();
+        }
+        
+        // Update Feeds
+        function updateFeeds() {
+            const route = document.getElementById('feedRoute').value;
+            
+            // Show/hide tube info for all routes except NPO
+            const showTube = (route !== 'NPO');
+            document.getElementById('tubeInfo').style.display = showTube ? 'block' : 'none';
+            
+            // Hide all conditional fields first
+            document.getElementById('idfDetails').style.display = 'none';
+            document.getElementById('poOrderDetails').style.display = 'none';
+            
+            // Show relevant conditional fields
+            if (route === 'IDF') {
+                document.getElementById('idfDetails').style.display = 'block';
+            } else if (route === 'PO-order') {
+                document.getElementById('poOrderDetails').style.display = 'block';
+            }
+            
+            if (appState.babies[appState.currentBabyIndex]) {
+                const baby = appState.babies[appState.currentBabyIndex];
+                baby.reportSheet.feeds.route = route;
+                baby.reportSheet.feeds.volume = document.getElementById('feedVolume').value;
+                baby.reportSheet.feeds.type = document.getElementById('feedType').value;
+                baby.reportSheet.feeds.calories = document.getElementById('feedCalories').value;
+                baby.reportSheet.feeds.instructions = document.getElementById('feedInstructions').value;
+                
+                if (showTube) {
+                    if (!baby.reportSheet.feeds.tube) baby.reportSheet.feeds.tube = {};
+                    baby.reportSheet.feeds.tube.size = document.getElementById('tubeSize').value;
+                    baby.reportSheet.feeds.tube.depth = document.getElementById('tubeDepth').value;
+                }
+                
+                if (route === 'IDF') {
+                    baby.reportSheet.feeds.idf24hrMet = document.getElementById('idf24hr').checked;
+                } else if (route === 'PO-order') {
+                    baby.reportSheet.feeds.poOrder = document.getElementById('poOrder').value;
+                }
+                
+                // Fortification details
+                if (baby.reportSheet.feeds.type === 'Fortified BM') {
+                    if (!baby.reportSheet.feeds.fortification) baby.reportSheet.feeds.fortification = {};
+                    baby.reportSheet.feeds.fortification.method = document.getElementById('fortMethod').value;
+                    
+                    if (baby.reportSheet.feeds.fortification.method === 'Enfacare') {
+                        baby.reportSheet.feeds.fortification.recipe = 
+                            `${document.getElementById('enfacareML').value} to ${document.getElementById('enfacareAmount').value}`;
+                    } else if (baby.reportSheet.feeds.fortification.method === 'Other') {
+                        baby.reportSheet.feeds.fortification.recipe = document.getElementById('fortOther').value;
+                    }
+                }
+                
+                // Thickening details
+                baby.reportSheet.feeds.isThickened = document.getElementById('isThickened').checked;
+                if (baby.reportSheet.feeds.isThickened) {
+                    if (!baby.reportSheet.feeds.thickening) baby.reportSheet.feeds.thickening = {};
+                    baby.reportSheet.feeds.thickening.agent = document.getElementById('thickenAgent').value;
+                    baby.reportSheet.feeds.thickening.recipe = document.getElementById('thickenRecipe').value;
+                }
+                
+                saveState();
+            }
+        }
+        
+        // Toggle PICC
+        function togglePICC() {
+            const checked = document.getElementById('hasPICC').checked;
+            document.getElementById('piccDetails').style.display = checked ? 'block' : 'none';
+            updateLines();
+        }
+        
+        // Toggle UVC
+        function toggleUVC() {
+            const checked = document.getElementById('hasUVC').checked;
+            document.getElementById('uvcDetails').style.display = checked ? 'block' : 'none';
+            updateLines();
+        }
+        
+        // Toggle UAC
+        function toggleUAC() {
+            const checked = document.getElementById('hasUAC').checked;
+            document.getElementById('uacDetails').style.display = checked ? 'block' : 'none';
+            updateLines();
+        }
+        
+        // Update Lines
+        function updateLines() {
+            if (appState.babies[appState.currentBabyIndex]) {
+                const baby = appState.babies[appState.currentBabyIndex];
+                if (!baby.reportSheet.lines) baby.reportSheet.lines = {};
+                
+                // PIV
+                baby.reportSheet.lines.piv = {
+                    site: document.getElementById('pivSite').value,
+                    gauge: document.getElementById('pivGauge').value
+                };
+                
+                // PICC
+                baby.reportSheet.lines.hasPICC = document.getElementById('hasPICC').checked;
+                if (baby.reportSheet.lines.hasPICC) {
+                    baby.reportSheet.lines.picc = {
+                        location: document.getElementById('piccLocation').value,
+                        lineOut: document.getElementById('piccOut').value,
+                        circumference: document.getElementById('piccCirc').value
+                    };
+                }
+                
+                // UVC
+                baby.reportSheet.lines.hasUVC = document.getElementById('hasUVC').checked;
+                if (baby.reportSheet.lines.hasUVC) {
+                    baby.reportSheet.lines.uvc = {
+                        length: document.getElementById('uvcLength').value,
+                        proximal: document.getElementById('uvcProximal').value,
+                        distal: document.getElementById('uvcDistal').value
+                    };
+                }
+                
+                // UAC
+                baby.reportSheet.lines.hasUAC = document.getElementById('hasUAC').checked;
+                if (baby.reportSheet.lines.hasUAC) {
+                    baby.reportSheet.lines.uac = {
+                        length: document.getElementById('uacLength').value
+                    };
+                }
+                
+                // IV Fluids
+                baby.reportSheet.lines.ivFluids = document.getElementById('ivFluids').value;
+                
+                saveState();
+            }
+        }
+        
+        // Update Maternal History from form elements
+        function updateMaternalHistory() {
+            const baby = appState.babies[appState.currentBabyIndex];
+            const elements = {
+                age: document.getElementById('momAge').value,
+                gp: document.getElementById('gpStatus').value,
+                delivery: document.getElementById('deliveryType').value,
+                reason: document.getElementById('deliveryReason').value,
+                gdm: document.getElementById('gdm').checked,
+                dm1: document.getElementById('dm1').checked,
+                dm2: document.getElementById('dm2').checked,
+                insulin: document.getElementById('insulin').checked,
+                mag: document.getElementById('mag').checked,
+                steroids: document.getElementById('steroids').checked
+            };
+            
+            let history = [];
+            if (elements.age) history.push(`${elements.age}yo`);
+            if (elements.gp) history.push(elements.gp);
+            if (elements.delivery) history.push(elements.delivery);
+            if (elements.reason) history.push(elements.reason);
+            
+            let conditions = [];
+            if (elements.gdm) conditions.push('GDM');
+            if (elements.dm1) conditions.push('Type 1 DM');
+            if (elements.dm2) conditions.push('Type 2 DM');
+            if (elements.insulin) conditions.push('insulin dependent');
+            if (elements.mag) conditions.push('on Mag');
+            if (elements.steroids) conditions.push('steroids given');
+            
+            if (conditions.length > 0) {
+                history.push(conditions.join(', '));
+            }
+            
+            // Update the summary but preserve any manual text
+            const manualText = document.getElementById('maternalHistory').value;
+            const autoGenerated = history.join(', ');
+            
+            // Store structured data for later use
+            baby.reportSheet.maternalHistoryStructured = elements;
+            baby.reportSheet.maternalHistorySummary = autoGenerated;
+            
+            saveState();
+        }
+        
+        // Update Baby History from form elements
+        function updateBabyHistory() {
+            const baby = appState.babies[appState.currentBabyIndex];
+            const elements = {
+                breech: document.getElementById('breech').checked,
+                surfactant: document.getElementById('surfactant').checked,
+                surfactantDoses: document.getElementById('surfactantDoses').value,
+                ventHistory: document.getElementById('ventHistory').checked,
+                hepB: document.getElementById('hepB').checked,
+                vitK: document.getElementById('vitK').checked,
+                eyeOintment: document.getElementById('eyeOintment').checked
+            };
+            
+            let history = [];
+            if (elements.breech) history.push('Breech');
+            if (elements.surfactant) {
+                const doses = elements.surfactantDoses || '1';
+                history.push(`Surfactant x${doses}`);
+            }
+            if (elements.ventHistory) history.push('Vent history');
+            
+            let meds = [];
+            if (elements.hepB) meds.push('Hep B');
+            if (elements.vitK) meds.push('Vit K');
+            if (elements.eyeOintment) meds.push('Eye ointment');
+            
+            if (meds.length > 0) {
+                history.push(`Admission meds: ${meds.join(', ')}`);
+            }
+            
+            // Store structured data
+            baby.reportSheet.babyHistoryStructured = elements;
+            baby.reportSheet.babyHistorySummary = history.join(', ');
+            
+            saveState();
+        }
+        
+        // Toggle Accordion
+        function toggleAccordion(header) {
+            const content = header.nextElementSibling;
+            content.classList.toggle('active');
+            const arrow = header.querySelector('span:last-child');
+            arrow.textContent = content.classList.contains('active') ? '▲' : '▼';
+        }
+        
+        // Update Report Sheet
+        function updateReportSheet(field, value) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            if (field.includes('.')) {
+                const [section, subfield] = field.split('.');
+                baby.reportSheet[section][subfield] = value;
+            } else {
+                baby.reportSheet[field] = value;
+            }
+            saveState();
+        }
+        
+        // Open Touch Time Modal
+        function openTouchTimeModal(time) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            const log = baby.touchTimeLogs[time];
+            
+            // Create modal dynamically
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Touch Time: ${time}</h2>
+                    <div class="field-grid">
+                        <div class="form-group">
+                            <label>Temp:</label>
+                            <input type="text" id="tt_temp" value="${log.temp}" placeholder="98.6">
+                        </div>
+                        <div class="form-group">
+                            <label>HR:</label>
+                            <input type="text" id="tt_hr" value="${log.hr}" placeholder="140">
+                        </div>
+                        <div class="form-group">
+                            <label>RR:</label>
+                            <input type="text" id="tt_rr" value="${log.rr}" placeholder="45">
+                        </div>
+                        <div class="form-group">
+                            <label>SpO₂:</label>
+                            <input type="text" id="tt_spo2" value="${log.spo2}" placeholder="98%">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Feed Given:</label>
+                        <input type="text" id="tt_feed" value="${log.feed}" placeholder="45ml NG">
+                    </div>
+                    
+                    <!-- IDF Scoring (conditional) -->
+                    ${baby.reportSheet.feeds.route === 'IDF' ? `
+                    <div style="padding: 0.5rem; background: #e8f4f8; border-radius: 8px; margin-bottom: 0.5rem;">
+                        <label style="font-weight: 600;">IDF Protocol:</label>
+                        <div class="field-grid" style="margin-top: 0.5rem;">
+                            <div>
+                                <label style="font-size: 0.9rem;">Readiness Score:</label>
+                                <select id="tt_readiness">
+                                    <option value="">Select...</option>
+                                    <option value="1">1 - Ready</option>
+                                    <option value="2">2 - Ready</option>
+                                    <option value="3">3 - Not ready</option>
+                                    <option value="4">4 - Not ready</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.9rem;">Quality Score:</label>
+                                <select id="tt_quality">
+                                    <option value="">Select...</option>
+                                    <option value="1">1 - Excellent</option>
+                                    <option value="2">2 - Good</option>
+                                    <option value="3">3 - Fair</option>
+                                    <option value="4">4 - Poor</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top: 0.5rem;">
+                            <label style="font-size: 0.9rem;">PO Volume / Caregiver Strategies:</label>
+                            <input type="text" id="tt_idfNotes" placeholder="15ml PO in 20min, pacing used">
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="form-group">
+                        <label>Diaper:</label>
+                        <div class="quick-input">
+                            <div class="quick-btn" onclick="setQuickValue('tt_diaper', 'Wet')">Wet</div>
+                            <div class="quick-btn" onclick="setQuickValue('tt_diaper', 'Stool')">Stool</div>
+                            <div class="quick-btn" onclick="setQuickValue('tt_diaper', 'Wet + Stool')">Both</div>
+                        </div>
+                        <input type="text" id="tt_diaper" value="${log.diaper}" style="margin-top: 0.5rem;">
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="tt_positioning" ${log.positioning ? 'checked' : ''}>
+                        <label for="tt_positioning">Positioning completed</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="tt_lineCheck" ${log.lineCheck ? 'checked' : ''}>
+                        <label for="tt_lineCheck">Line check completed</label>
+                    </div>
+                    <div class="form-group">
+                        <label>Comments:</label>
+                        <textarea id="tt_comments">${log.comments}</textarea>
+                    </div>
+                    <button class="btn" onclick="saveTouchTime('${time}')">Save</button>
+                    <button class="btn btn-secondary" onclick="closeTouchTimeModal()">Cancel</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // Set Quick Value
+        function setQuickValue(inputId, value) {
+            document.getElementById(inputId).value = value;
+        }
+        
+        // Save Touch Time
+        function saveTouchTime(time) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            const log = baby.touchTimeLogs[time];
+            
+            log.temp = document.getElementById('tt_temp').value;
+            log.hr = document.getElementById('tt_hr').value;
+            log.rr = document.getElementById('tt_rr').value;
+            log.spo2 = document.getElementById('tt_spo2').value;
+            log.feed = document.getElementById('tt_feed').value;
+            log.diaper = document.getElementById('tt_diaper').value;
+            log.positioning = document.getElementById('tt_positioning').checked;
+            log.lineCheck = document.getElementById('tt_lineCheck').checked;
+            log.comments = document.getElementById('tt_comments').value;
+            log.complete = true;
+            
+            closeTouchTimeModal();
+            renderBabies();
+            saveState();
+        }
+        
+        // Close Touch Time Modal
+        function closeTouchTimeModal() {
+            const modal = document.querySelector('.modal.active');
+            if (modal) modal.remove();
+        }
+        
+        // Add Event
+        function addEvent() {
+            const eventType = prompt('Event type (e.g., Desat, Brady, Med given, Lab drawn):');
+            if (!eventType) return;
+            
+            const description = prompt('Description:');
+            if (!description) return;
+            
+            const baby = appState.babies[appState.currentBabyIndex];
+            const now = new Date();
+            const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            baby.events.push({
+                time,
+                type: eventType,
+                description
+            });
+            
+            renderBabies();
+            saveState();
+        }
+        
+        // Save State
+        function saveState() {
+            localStorage.setItem('nicuShiftState', JSON.stringify(appState));
+        }
+        
+        // Export Shift Report
+        function exportShiftReport() {
+            let report = `NICU Shift Report\n`;
+            report += `Shift Started: ${appState.shiftStart}\n`;
+            report += `Generated: ${new Date().toLocaleString()}\n`;
+            report += `${'='.repeat(50)}\n\n`;
+            
+            appState.babies.forEach(baby => {
+                report += `BABY: ${baby.name}\n`;
+                if (baby.bed) report += `Notes: ${baby.bed}\n`;
+                report += `GA: ${baby.ga} | CGA: ${baby.cga} | DOL: ${baby.dol}\n`;
+                report += `Touch Time Schedule: ${baby.touchTimes ? baby.touchTimes.join(' → ') : 'Not set'}\n`;
+                report += `\nREPORT SHEET:\n`;
+                report += `Maternal History: ${baby.reportSheet.maternalHistory}\n`;
+                report += `Current Problems: ${baby.reportSheet.currentProblems}\n`;
+                report += `Respiratory: ${baby.reportSheet.respiratory.mode}, FiO2: ${baby.reportSheet.respiratory.fio2}%\n`;
+                report += `Feeds: ${baby.reportSheet.feeds.route}, ${baby.reportSheet.feeds.volume}\n`;
+                report += `Medications: ${baby.reportSheet.medications}\n`;
+                report += `Plan: ${baby.reportSheet.plan}\n`;
+                
+                report += `\nTOUCH TIMES:\n`;
+                if (baby.touchTimes) {
+                    baby.touchTimes.forEach(time => {
+                        const log = baby.touchTimeLogs[time];
+                        if (log && log.complete) {
+                            report += `${time}: T:${log.temp} HR:${log.hr} RR:${log.rr} SpO2:${log.spo2}\n`;
+                            report += `  Feed: ${log.feed}, Diaper: ${log.diaper}\n`;
+                            if (log.comments) report += `  Comments: ${log.comments}\n`;
+                        } else {
+                            report += `${time}: Not completed\n`;
+                        }
+                    });
+                }
+                
+                if (baby.events.length > 0) {
+                    report += `\nEVENTS:\n`;
+                    baby.events.forEach(event => {
+                        report += `${event.time} - ${event.type}: ${event.description}\n`;
+                    });
+                }
+                
+                report += `\n${'='.repeat(50)}\n\n`;
+            });
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(report).then(() => {
+                alert('Report copied to clipboard! You can paste it into your charting system.');
+            });
+        }
+        
+        // Save Shift Data
+        function saveShift() {
+            const dataStr = JSON.stringify(appState, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nicu-shift-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Load Previous Shift
+        function loadPreviousShift() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        appState = JSON.parse(event.target.result);
+                        document.getElementById('setupScreen').classList.remove('active');
+                        document.getElementById('mainScreen').classList.add('active');
+                        updateShiftDisplay();
+                        renderBabies();
+                        saveState();
+                    } catch (err) {
+                        alert('Error loading file. Please check the file format.');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

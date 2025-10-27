@@ -1,0 +1,2726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NICU Shift Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .shift-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            color: #4a5568;
+            font-size: 14px;
+        }
+
+        .shift-badge {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        /* Setup Screen */
+        .setup-screen {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .setup-screen h2 {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #2d3748;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #718096;
+            background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            width: auto;
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        /* Baby Tabs */
+        .baby-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+
+        .baby-tab {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 12px 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            color: #4a5568;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .baby-tab:hover {
+            background: white;
+            transform: translateY(-2px);
+        }
+
+        .baby-tab.active {
+            background: white;
+            border-color: #667eea;
+            color: #667eea;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+        }
+
+        .baby-tab.add-tab {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+        }
+
+        /* Baby Card */
+        .baby-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .baby-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f7fafc;
+        }
+
+        .baby-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .baby-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .stat-badge {
+            background: #edf2f7;
+            color: #4a5568;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .stat-badge.special {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        /* Progress Indicator */
+        .progress-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progress-circle {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e2e8f0;
+        }
+
+        .progress-circle.complete {
+            background: #48bb78;
+        }
+
+        .progress-circle.pending {
+            background: #ed8936;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: #4a5568;
+            font-weight: 600;
+        }
+
+        /* Sections */
+        .sections-grid {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            background: #f7fafc;
+            border-radius: 16px;
+            padding: 20px;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .section:hover {
+            border-color: #e2e8f0;
+        }
+
+        .section.expanded {
+            background: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+
+        .section.expanded .section-header {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-arrow {
+            transition: transform 0.2s ease;
+            color: #718096;
+        }
+
+        .section.expanded .section-arrow {
+            transform: rotate(180deg);
+        }
+
+        .section-content {
+            display: none;
+        }
+
+        .section.expanded .section-content {
+            display: block;
+        }
+
+        /* Touch Times */
+        .touch-times-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .touch-time-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .touch-time-card.complete {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .touch-time-card.pending {
+            border-color: #ed8936;
+            background: #fffaf0;
+        }
+
+        .touch-time-card.overdue {
+            border-color: #e53e3e;
+            background: #fed7d7;
+        }
+
+        .touch-time-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .touch-time-label {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-complete {
+            background: #48bb78;
+            color: white;
+        }
+
+        .status-pending {
+            background: #ed8936;
+            color: white;
+        }
+
+        .status-overdue {
+            background: #e53e3e;
+            color: white;
+        }
+
+        /* Form Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .form-grid-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .form-grid-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        /* Quick Input */
+        .quick-input {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .quick-btn {
+            background: #edf2f7;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+            transition: all 0.2s ease;
+        }
+
+        .quick-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f7fafc;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #718096;
+            padding: 4px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: #f7fafc;
+            color: #2d3748;
+        }
+
+        /* Checkbox styling */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        /* Special feeding indicators */
+        .feeding-indicator {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .feeding-q3 {
+            background: #e6fffa;
+            color: #234e52;
+            border: 1px solid #81e6d9;
+        }
+
+        .feeding-q4 {
+            background: #fef5e7;
+            color: #744210;
+            border: 1px solid #f6e05e;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .baby-card {
+                padding: 20px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid-2, .form-grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .touch-times-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .baby-stats {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+
+        /* Utilities */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-4 {
+            margin-top: 16px;
+        }
+
+        .mb-4 {
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Setup Screen -->
+        <div id="setupScreen" class="setup-screen">
+            <h2>🏥 Start Your NICU Shift</h2>
+            <div class="form-group">
+                <label>Shift Start Time</label>
+                <select id="shiftStartSelect">
+                    <option value="07:00" selected>7:00 AM - 7:00 PM</option>
+                    <option value="13:00">1:00 PM - 7:00 PM</option>
+                </select>
+            </div>
+            <button class="btn" onclick="startShift()">Start Shift</button>
+            <button class="btn btn-secondary" onclick="loadPreviousShift()">Load Previous Shift</button>
+        </div>
+
+        <!-- Main App -->
+        <div id="mainApp" class="hidden">
+            <!-- Header -->
+            <div class="header">
+                <h1>🏥 NICU Shift Tracker</h1>
+                <div class="shift-info">
+                    <span class="shift-badge" id="shiftTime">7:00 AM - 7:00 PM</span>
+                    <span id="currentTime"></span>
+                    <span id="shiftProgress"></span>
+                </div>
+            </div>
+
+            <!-- Baby Tabs -->
+            <div class="baby-tabs" id="babyTabs">
+                <div class="baby-tab add-tab" onclick="showAddBabyModal()">
+                    + Add Baby
+                </div>
+            </div>
+
+            <!-- Baby Content -->
+            <div id="babyContent">
+                <div class="text-center" style="padding: 60px 20px; color: #718096;">
+                    <h3>No babies added yet</h3>
+                    <p>Click "Add Baby" to get started</p>
+                </div>
+            </div>
+
+            <!-- Export Section -->
+            <div class="baby-card text-center">
+                <h3 style="margin-bottom: 20px;">End of Shift</h3>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn" style="width: auto; min-width: 200px;" onclick="exportReport()">📋 Export Report</button>
+                    <button class="btn btn-secondary" style="width: auto; min-width: 200px;" onclick="saveShift()">💾 Save Shift</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Baby Modal -->
+    <div id="addBabyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add New Baby</h2>
+                <button class="close-btn" onclick="closeModal('addBabyModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Baby Identifier</label>
+                <input type="text" id="babyName" placeholder="Baby 1, Twin A, etc.">
+            </div>
+            
+            <div class="form-group">
+                <label>Description/Notes</label>
+                <input type="text" id="babyDescription" placeholder="39 weeker, growth restriction, etc.">
+            </div>
+            
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label>GA at Birth</label>
+                    <input type="text" id="gaAtBirth" placeholder="32+3" onchange="calculateDOL()">
+                </div>
+                <div class="form-group">
+                    <label>Current CGA</label>
+                    <input type="text" id="currentCGA" placeholder="33+5" onchange="calculateDOL()">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Days of Life (auto-calculated)</label>
+                <input type="text" id="daysOfLife" readonly style="background: #f7fafc;">
+            </div>
+            
+            <div class="form-group">
+                <label>First Touch Time</label>
+                <select id="firstTouchTime">
+                    <option value="08:00">8:00 AM</option>
+                    <option value="08:30" selected>8:30 AM</option>
+                    <option value="09:00">9:00 AM</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Feeding Status</label>
+                <select id="feedingStatus" onchange="updateFeedingInfo()">
+                    <option value="regular">Regular feeds (q3 hours)</option>
+                    <option value="npo">NPO (q4 hours)</option>
+                    <option value="continuous">Continuous feeds (q4 hours)</option>
+                </select>
+                <div id="feedingInfo" class="feeding-indicator feeding-q3">
+                    Touch times every 3 hours
+                </div>
+                <div id="feedingWarning" style="display: none; background: #e6f3ff; padding: 8px; border-radius: 6px; margin-top: 8px; font-size: 13px; color: #0066cc;">
+                    <strong>Note:</strong> Baby will be <33 weeks CGA - PO feeds not developmentally appropriate
+                </div>
+            </div>
+            
+            <button class="btn" onclick="addBaby()">Add Baby</button>
+        </div>
+    </div>
+
+    <!-- Edit Baby Modal -->
+    <div id="editBabyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Baby Information</h2>
+                <button class="close-btn" onclick="closeModal('editBabyModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Baby Identifier</label>
+                <input type="text" id="editBabyName" placeholder="Baby 1, Twin A, etc.">
+            </div>
+            
+            <div class="form-group">
+                <label>Description/Notes</label>
+                <input type="text" id="editBabyDescription" placeholder="39 weeker, growth restriction, etc.">
+            </div>
+            
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label>GA at Birth</label>
+                    <input type="text" id="editGaAtBirth" placeholder="32+3" onchange="calculateEditDOL()">
+                </div>
+                <div class="form-group">
+                    <label>Current CGA</label>
+                    <input type="text" id="editCurrentCGA" placeholder="33+5" onchange="calculateEditDOL()">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Days of Life (auto-calculated)</label>
+                <input type="text" id="editDaysOfLife" readonly style="background: #f7fafc;">
+            </div>
+            
+            <div class="form-group">
+                <label>First Touch Time</label>
+                <select id="editFirstTouchTime" onchange="updateEditTouchTimes()">
+                    <option value="08:00">8:00 AM</option>
+                    <option value="08:30">8:30 AM</option>
+                    <option value="09:00">9:00 AM</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Feeding Status</label>
+                <select id="editFeedingStatus" onchange="updateEditFeedingInfo()">
+                    <option value="regular">Regular feeds (q3 hours)</option>
+                    <option value="npo">NPO (q4 hours)</option>
+                    <option value="continuous">Continuous feeds (q4 hours)</option>
+                </select>
+                <div id="editFeedingInfo" class="feeding-indicator feeding-q3">
+                    Touch times every 3 hours
+                </div>
+                <div id="editFeedingWarning" style="display: none; background: #e6f3ff; padding: 8px; border-radius: 6px; margin-top: 8px; font-size: 13px; color: #0066cc;">
+                    <strong>Note:</strong> Baby will be <33 weeks CGA - PO feeds not developmentally appropriate
+                </div>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 12px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #ffc107;">
+                <strong>⚠️ Important:</strong> Changing the first touch time or feeding frequency will regenerate all touch times. Any existing touch time data will be preserved where possible.
+            </div>
+            
+            <button class="btn" onclick="saveEditBaby()">Save Changes</button>
+        </div>
+    </div>
+    <div id="respiratoryChangeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Respiratory Change</h2>
+                <button class="close-btn" onclick="closeModal('respiratoryChangeModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Date of Change</label>
+                <input type="date" id="respChangeDate">
+            </div>
+            
+            <div class="form-group">
+                <label>New Respiratory Mode</label>
+                <select id="respChangeMode">
+                    <option value="">Select...</option>
+                    <option value="Room Air">Room Air</option>
+                    <option value="Low Flow NC">Low Flow Nasal Cannula</option>
+                    <option value="High Flow NC">High Flow Nasal Cannula</option>
+                    <option value="Bubble CPAP">Bubble CPAP</option>
+                    <option value="Noninvasive NAVA">Noninvasive NAVA</option>
+                    <option value="Invasive NAVA">Invasive NAVA</option>
+                    <option value="Conventional Vent">Conventional Ventilator</option>
+                    <option value="Oscillator">Oscillator</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Reason for Change (optional)</label>
+                <input type="text" id="respChangeReason" placeholder="Respiratory distress, weaning trial, etc.">
+            </div>
+            
+            <button class="btn" onclick="saveRespiratoryChange()">Add Change</button>
+        </div>
+    </div>
+    <div id="touchTimeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="touchTimeTitle">Touch Time: 08:30</h2>
+                <button class="close-btn" onclick="closeModal('touchTimeModal')">&times;</button>
+            </div>
+            
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label>Temperature</label>
+                    <input type="text" id="ttTemp" placeholder="98.6">
+                </div>
+                <div class="form-group">
+                    <label>Heart Rate</label>
+                    <input type="text" id="ttHR" placeholder="140">
+                </div>
+                <div class="form-group">
+                    <label>Respiratory Rate</label>
+                    <input type="text" id="ttRR" placeholder="45">
+                </div>
+                <div class="form-group">
+                    <label>SpO₂</label>
+                    <input type="text" id="ttSpO2" placeholder="98%">
+                </div>
+            </div>
+            
+            <div class="form-group" id="feedSection">
+                <label>Feed Given</label>
+                <input type="text" id="ttFeed" placeholder="45ml NG, 20ml PO, etc.">
+            </div>
+            
+            <!-- IDF Scoring Section -->
+            <div id="idfScoringSection" style="display: none; background: #fff8dc; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                <label style="font-weight: 600; margin-bottom: 8px; display: block;">IDF Protocol Scoring</label>
+                
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label style="font-size: 14px;">Readiness Score</label>
+                        <select id="ttReadinessScore">
+                            <option value="">Select...</option>
+                            <option value="1">1 - Ready</option>
+                            <option value="2">2 - Ready</option>
+                            <option value="3">3 - Not ready</option>
+                            <option value="4">4 - Not ready</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="qualityScoreSection">
+                        <label style="font-size: 14px;">Quality Score (after PO attempt)</label>
+                        <select id="ttQualityScore">
+                            <option value="">Select...</option>
+                            <option value="1">1 - Excellent</option>
+                            <option value="2">2 - Good</option>
+                            <option value="3">3 - Fair</option>
+                            <option value="4">4 - Poor</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="font-size: 14px;">PO Volume/Strategies</label>
+                    <input type="text" id="ttIDFNotes" placeholder="15ml PO in 20min, pacing used, etc.">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Diaper</label>
+                <div class="quick-input">
+                    <div class="quick-btn" onclick="setQuickValue('ttDiaper', 'Wet')">Wet</div>
+                    <div class="quick-btn" onclick="setQuickValue('ttDiaper', 'Stool')">Stool</div>
+                    <div class="quick-btn" onclick="setQuickValue('ttDiaper', 'Wet + Stool')">Both</div>
+                    <div class="quick-btn" onclick="setQuickValue('ttDiaper', 'Dry')">Dry</div>
+                </div>
+                <input type="text" id="ttDiaper" style="margin-top: 8px;">
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="ttPositioning">
+                <label>Positioning completed</label>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="ttLineCheck">
+                <label>Line/IV check completed</label>
+            </div>
+            
+            <div class="form-group">
+                <label>Comments</label>
+                <textarea id="ttComments" placeholder="Any notable observations..."></textarea>
+            </div>
+            
+            <button class="btn" onclick="saveTouchTime()">Save Touch Time</button>
+        </div>
+    </div>
+
+    <script>
+        // App State
+        let appState = {
+            shiftStart: null,
+            shiftEnd: '19:00', // Always 7pm
+            babies: [],
+            currentBabyIndex: 0
+        };
+
+        let currentTouchTime = null;
+        let currentBabyId = null;
+
+        // Utility Functions (define first)
+        function checkIfUnder33Weeks(cga) {
+            if (!cga) return false;
+            
+            try {
+                const parts = cga.split('+');
+                const weeks = parseInt(parts[0]) || 0;
+                const days = parseInt(parts[1]) || 0;
+                const totalWeeks = weeks + (days / 7);
+                
+                console.log(`Checking CGA: ${cga}, Total weeks: ${totalWeeks}, Under 33: ${totalWeeks < 33}`);
+                return totalWeeks < 33;
+            } catch (e) {
+                console.error('Error parsing CGA:', cga, e);
+                return false;
+            }
+        }
+
+        function generateMaternalSummary(maternal) {
+            const parts = [];
+            
+            // Basic info
+            if (maternal.age) parts.push(`${maternal.age}yo`);
+            if (maternal.gravida && maternal.para) parts.push(`G${maternal.gravida}P${maternal.para}`);
+            if (maternal.livingChildren) parts.push(`Living children: ${maternal.livingChildren}`);
+            
+            // Delivery
+            if (maternal.deliveryType) parts.push(maternal.deliveryType);
+            if (maternal.deliveryReason) parts.push(`for ${maternal.deliveryReason}`);
+            
+            // Conditions
+            const conditions = [];
+            if (maternal.conditions?.gdm) conditions.push('GDM');
+            if (maternal.conditions?.t1d) conditions.push('T1D');
+            if (maternal.conditions?.t2d) {
+                let t2d = 'T2D';
+                if (maternal.conditions?.insulinDependent) t2d += ' (insulin dependent)';
+                conditions.push(t2d);
+            }
+            if (maternal.conditions?.chtn) conditions.push('cHTN');
+            if (maternal.conditions?.pih) conditions.push('PIH');
+            if (maternal.conditions?.preEclampsia) {
+                let preE = 'Pre-eclampsia';
+                if (maternal.conditions?.severeFeatures) preE += ' with severe features';
+                conditions.push(preE);
+            }
+            if (maternal.conditions?.hellp) conditions.push('HELLP');
+            
+            if (conditions.length > 0) {
+                parts.push(`Conditions: ${conditions.join(', ')}`);
+            }
+            
+            return parts.length > 0 ? parts.join(' | ') : 'No data entered';
+        }
+
+        function populateFeedRouteOptions(baby) {
+            const selectElement = document.getElementById(`feedRouteSelect_${baby.id}`);
+            const warningElement = document.getElementById(`feedRouteWarning_${baby.id}`);
+            
+            if (!selectElement) return;
+            
+            const isUnder33 = checkIfUnder33Weeks(baby.currentCGA);
+            const currentRoute = baby.reportSheet.feeds.route;
+            
+            // Clear existing options
+            selectElement.innerHTML = '';
+            
+            // Add basic options
+            const options = [
+                { value: '', text: 'Select...' },
+                { value: 'NG', text: 'NG only' }
+            ];
+            
+            // Add PO options only if ≥33 weeks
+            if (!isUnder33) {
+                options.push(
+                    { value: 'NG/PO', text: 'NG with PO attempts' },
+                    { value: 'IDF', text: 'IDF Protocol' },
+                    { value: 'PO', text: 'PO only' }
+                );
+            }
+            
+            // Add remaining options
+            options.push(
+                { value: 'OG', text: 'OG' },
+                { value: 'NPO', text: 'NPO' }
+            );
+            
+            // Populate the select
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.textContent = option.text;
+                if (option.value === currentRoute) {
+                    optionElement.selected = true;
+                }
+                selectElement.appendChild(optionElement);
+            });
+            
+            // Show warning if under 33 weeks
+            if (warningElement) {
+                if (isUnder33) {
+                    warningElement.innerHTML = `
+                        <div style="background: #e6f3ff; padding: 8px; border-radius: 6px; margin-top: 8px; font-size: 13px; color: #0066cc;">
+                            <strong>Note:</strong> Baby is ${baby.currentCGA} - PO feeds not developmentally appropriate
+                        </div>
+                    `;
+                } else {
+                    warningElement.innerHTML = '';
+                }
+            }
+        }
+
+        // Initialize app
+        function init() {
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
+            
+            // Load saved state
+            const saved = localStorage.getItem('nicuShiftTracker');
+            if (saved) {
+                try {
+                    appState = JSON.parse(saved);
+                    if (appState.shiftStart) {
+                        document.getElementById('setupScreen').classList.add('hidden');
+                        document.getElementById('mainApp').classList.remove('hidden');
+                        updateShiftDisplay();
+                        renderBabies();
+                    }
+                } catch (e) {
+                    console.error('Error loading saved state:', e);
+                }
+            }
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            const el = document.getElementById('currentTime');
+            if (el) {
+                el.textContent = `Current: ${timeStr}`;
+                
+                // Update shift progress if shift is active
+                if (appState.shiftStart) {
+                    updateShiftProgress(now);
+                    updateTouchTimeStatus(now);
+                }
+            }
+        }
+
+        function updateShiftProgress(now) {
+            const shiftStartTime = new Date();
+            const [startHour, startMin] = appState.shiftStart.split(':');
+            shiftStartTime.setHours(parseInt(startHour), parseInt(startMin), 0, 0);
+            
+            const shiftEndTime = new Date();
+            shiftEndTime.setHours(19, 0, 0, 0); // Always 7pm
+            
+            const totalShiftTime = shiftEndTime - shiftStartTime;
+            const elapsedTime = now - shiftStartTime;
+            const remainingTime = shiftEndTime - now;
+            
+            const hoursRemaining = Math.max(0, Math.floor(remainingTime / (1000 * 60 * 60)));
+            const minutesRemaining = Math.max(0, Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60)));
+            
+            const progressEl = document.getElementById('shiftProgress');
+            if (progressEl) {
+                if (remainingTime > 0) {
+                    progressEl.textContent = `${hoursRemaining}h ${minutesRemaining}m remaining`;
+                } else {
+                    progressEl.textContent = 'Shift ended';
+                }
+            }
+        }
+
+        function updateTouchTimeStatus(now) {
+            // Update touch time cards to show overdue status
+            appState.babies.forEach(baby => {
+                Object.keys(baby.touchTimes).forEach(timeStr => {
+                    const touchTime = baby.touchTimes[timeStr];
+                    if (!touchTime.complete) {
+                        const [hour, minute] = timeStr.split(':');
+                        const touchDateTime = new Date();
+                        touchDateTime.setHours(parseInt(hour), parseInt(minute), 0, 0);
+                        
+                        // If current time is more than 30 minutes past touch time, mark as overdue
+                        const thirtyMinutesLater = new Date(touchDateTime.getTime() + 30 * 60 * 1000);
+                        touchTime.isOverdue = now > thirtyMinutesLater;
+                    }
+                });
+            });
+            
+            // Don't re-render - this was causing the sections to collapse!
+            // Just update the touch time cards if they exist
+            const touchTimeCards = document.querySelectorAll('.touch-time-card');
+            touchTimeCards.forEach(card => {
+                // Update card classes based on current status without full re-render
+                // This is a more targeted update
+            });
+        }
+
+        function startShift() {
+            appState.shiftStart = document.getElementById('shiftStartSelect').value;
+            
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            updateShiftDisplay();
+            saveState();
+        }
+
+        function updateShiftDisplay() {
+            const startTime = appState.shiftStart;
+            const displayTime = startTime === '07:00' ? '7:00 AM - 7:00 PM' : '1:00 PM - 7:00 PM';
+            document.getElementById('shiftTime').textContent = displayTime;
+        }
+
+        function generateTouchTimes(firstTouchTime, feedingStatus) {
+            const [startHour, startMinute] = firstTouchTime.split(':').map(Number);
+            const interval = (feedingStatus === 'regular') ? 3 : 4; // 3 hours for regular, 4 hours for NPO/continuous
+            
+            const times = [];
+            let currentHour = startHour;
+            let currentMinute = startMinute;
+            
+            // Generate touch times until 7pm
+            while (currentHour < 19 || (currentHour === 19 && currentMinute === 0)) {
+                const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+                times.push(timeStr);
+                
+                currentHour += interval;
+                if (currentHour >= 24) break; // Don't go past midnight
+            }
+            
+            return times;
+        }
+
+        function updateFeedingInfo() {
+            const status = document.getElementById('feedingStatus').value;
+            const infoEl = document.getElementById('feedingInfo');
+            
+            if (status === 'regular') {
+                infoEl.className = 'feeding-indicator feeding-q3';
+                infoEl.textContent = 'Touch times every 3 hours';
+            } else {
+                infoEl.className = 'feeding-indicator feeding-q4';
+                const label = status === 'npo' ? 'NPO' : 'Continuous feeds';
+                infoEl.textContent = `${label} - Touch times every 4 hours`;
+            }
+        }
+
+        function calculateDOL() {
+            const ga = document.getElementById('gaAtBirth').value;
+            const cga = document.getElementById('currentCGA').value;
+            
+            if (ga && cga) {
+                try {
+                    const parseGA = (gaStr) => {
+                        const parts = gaStr.split('+');
+                        const weeks = parseInt(parts[0]) || 0;
+                        const days = parseInt(parts[1]) || 0;
+                        return weeks * 7 + days;
+                    };
+                    
+                    const gaDays = parseGA(ga);
+                    const cgaDays = parseGA(cga);
+                    const dol = cgaDays - gaDays;
+                    
+                    if (dol >= 0) {
+                        document.getElementById('daysOfLife').value = dol;
+                    }
+                    
+                    // Show feeding warning if <33 weeks
+                    const feedingWarning = document.getElementById('feedingWarning');
+                    if (feedingWarning) {
+                        const isUnder33 = checkIfUnder33Weeks(cga);
+                        feedingWarning.style.display = isUnder33 ? 'block' : 'none';
+                    }
+                } catch (e) {
+                    console.error('Error calculating DOL:', e);
+                }
+            }
+        }
+
+        function showAddBabyModal() {
+            const nextNum = appState.babies.length + 1;
+            document.getElementById('babyName').value = `Baby ${nextNum}`;
+            document.getElementById('babyDescription').value = '';
+            document.getElementById('gaAtBirth').value = '';
+            document.getElementById('currentCGA').value = '';
+            document.getElementById('daysOfLife').value = '';
+            document.getElementById('firstTouchTime').value = '08:30';
+            document.getElementById('feedingStatus').value = 'regular';
+            updateFeedingInfo();
+            document.getElementById('addBabyModal').classList.add('active');
+        }
+
+        function addBaby() {
+            const firstTouchTime = document.getElementById('firstTouchTime').value;
+            const feedingStatus = document.getElementById('feedingStatus').value;
+            const touchTimes = generateTouchTimes(firstTouchTime, feedingStatus);
+            
+            const baby = {
+                id: Date.now(),
+                name: document.getElementById('babyName').value || 'Unnamed Baby',
+                description: document.getElementById('babyDescription').value,
+                gaAtBirth: document.getElementById('gaAtBirth').value,
+                currentCGA: document.getElementById('currentCGA').value,
+                daysOfLife: document.getElementById('daysOfLife').value,
+                firstTouchTime: firstTouchTime,
+                feedingStatus: feedingStatus,
+                touchTimes: {},
+                reportSheet: {
+                    maternal: {
+                        age: '',
+                        gravida: '',
+                        para: '',
+                        livingChildren: '',
+                        deliveryType: '',
+                        deliveryReason: '',
+                        conditions: {},
+                        notes: ''
+                    },
+                    babyHistory: {
+                        deliveryRoom: {},
+                        respiratoryHistory: [],
+                        feedIssues: '',
+                        notes: ''
+                    },
+                    respiratory: { 
+                        mode: 'RA', 
+                        dateStarted: '',
+                        notes: '' 
+                    },
+                    feeds: { route: feedingStatus === 'npo' ? 'NPO' : 'NG', volume: '', type: '' },
+                    lines: { access: '', fluids: '' },
+                    medications: '',
+                    plan: ''
+                },
+                events: []
+            };
+
+            // Initialize touch time logs
+            touchTimes.forEach(time => {
+                baby.touchTimes[time] = {
+                    complete: false,
+                    temp: '', hr: '', rr: '', spo2: '',
+                    feed: '', diaper: '',
+                    positioning: false, lineCheck: false,
+                    comments: '', isOverdue: false
+                };
+            });
+
+            appState.babies.push(baby);
+            appState.currentBabyIndex = appState.babies.length - 1;
+            
+            closeModal('addBabyModal');
+            renderBabies();
+            saveState();
+        }
+
+        function populateFeedRouteOptions(baby) {
+            const selectElement = document.getElementById(`feedRouteSelect_${baby.id}`);
+            const warningElement = document.getElementById(`feedRouteWarning_${baby.id}`);
+            
+            if (!selectElement) return;
+            
+            const isUnder33 = checkIfUnder33Weeks(baby.currentCGA);
+            const currentRoute = baby.reportSheet.feeds.route;
+            
+            // Clear existing options
+            selectElement.innerHTML = '';
+            
+            // Add basic options
+            const options = [
+                { value: '', text: 'Select...' },
+                { value: 'NG', text: 'NG only' }
+            ];
+            
+            // Add PO options only if ≥33 weeks
+            if (!isUnder33) {
+                options.push(
+                    { value: 'NG/PO', text: 'NG with PO attempts' },
+                    { value: 'IDF', text: 'IDF Protocol' },
+                    { value: 'PO', text: 'PO only' }
+                );
+            }
+            
+            // Add remaining options
+            options.push(
+                { value: 'OG', text: 'OG' },
+                { value: 'NPO', text: 'NPO' }
+            );
+            
+            // Populate the select
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.textContent = option.text;
+                if (option.value === currentRoute) {
+                    optionElement.selected = true;
+                }
+                selectElement.appendChild(optionElement);
+            });
+            
+            // Show warning if under 33 weeks
+            if (warningElement) {
+                if (isUnder33) {
+                    warningElement.innerHTML = `
+                        <div style="background: #e6f3ff; padding: 8px; border-radius: 6px; margin-top: 8px; font-size: 13px; color: #0066cc;">
+                            <strong>Note:</strong> Baby is ${baby.currentCGA} - PO feeds not developmentally appropriate
+                        </div>
+                    `;
+                } else {
+                    warningElement.innerHTML = '';
+                }
+            }
+        }
+
+        function renderBabies() {
+            const tabsContainer = document.getElementById('babyTabs');
+            const contentContainer = document.getElementById('babyContent');
+            
+            // Update tabs
+            const addTab = tabsContainer.querySelector('.add-tab');
+            tabsContainer.innerHTML = '';
+            
+            appState.babies.forEach((baby, index) => {
+                const tab = document.createElement('div');
+                tab.className = `baby-tab ${index === appState.currentBabyIndex ? 'active' : ''}`;
+                tab.textContent = baby.name;
+                tab.onclick = () => selectBaby(index);
+                tabsContainer.appendChild(tab);
+            });
+            
+            tabsContainer.appendChild(addTab);
+            
+            // Update content
+            if (appState.babies.length === 0) {
+                contentContainer.innerHTML = `
+                    <div class="text-center" style="padding: 60px 20px; color: #718096;">
+                        <h3>No babies added yet</h3>
+                        <p>Click "Add Baby" to get started</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const baby = appState.babies[appState.currentBabyIndex];
+            renderBabyContent(baby);
+            
+            // Populate feed route options after rendering
+            if (baby) {
+                populateFeedRouteOptions(baby);
+            }
+        }
+
+        function selectBaby(index) {
+            appState.currentBabyIndex = index;
+            renderBabies();
+        }
+
+        function renderBabyContent(baby) {
+            const touchTimes = Object.keys(baby.touchTimes);
+            const completedTouchTimes = touchTimes.filter(time => baby.touchTimes[time].complete).length;
+            const totalTouchTimes = touchTimes.length;
+            
+            const feedingLabel = baby.feedingStatus === 'regular' ? 'Q3 feeds' : 
+                                baby.feedingStatus === 'npo' ? 'NPO' : 'Continuous feeds';
+            
+            document.getElementById('babyContent').innerHTML = `
+                <div class="baby-card">
+                    <div class="baby-header">
+                        <div>
+                            <div class="baby-name">${baby.name}</div>
+                            <div class="baby-stats">
+                                <span class="stat-badge">GA: ${baby.gaAtBirth}</span>
+                                <span class="stat-badge">CGA: ${baby.currentCGA}</span>
+                                <span class="stat-badge">DOL: ${baby.daysOfLife}</span>
+                                <span class="stat-badge ${baby.feedingStatus !== 'regular' ? 'special' : ''}">${feedingLabel}</span>
+                                <span class="stat-badge">First: ${baby.firstTouchTime}</span>
+                                ${baby.description ? `<span class="stat-badge">${baby.description}</span>` : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <button class="btn btn-add" onclick="editBaby(${baby.id})" style="padding: 8px 16px; font-size: 14px;">
+                                ✏️ Edit
+                            </button>
+                            <div class="progress-indicator">
+                                <div class="progress-text">${completedTouchTimes}/${totalTouchTimes} Complete</div>
+                                ${touchTimes.map(time => `
+                                    <div class="progress-circle ${baby.touchTimes[time].complete ? 'complete' : 'pending'}"></div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="sections-grid">
+                        <!-- Touch Times Section -->
+                        <div class="section expanded">
+                            <div class="section-header">
+                                <div class="section-title">
+                                    🕐 Touch Times ${baby.feedingStatus === 'regular' ? '(Every 3 hours)' : '(Every 4 hours)'}
+                                </div>
+                            </div>
+                            <div class="section-content">
+                                <div class="touch-times-grid">
+                                    ${touchTimes.map(time => {
+                                        const log = baby.touchTimes[time];
+                                        let cardClass = 'pending';
+                                        let statusClass = 'status-pending';
+                                        let statusText = 'Pending';
+                                        
+                                        if (log.complete) {
+                                            cardClass = 'complete';
+                                            statusClass = 'status-complete';
+                                            statusText = 'Complete';
+                                        } else if (log.isOverdue) {
+                                            cardClass = 'overdue';
+                                            statusClass = 'status-overdue';
+                                            statusText = 'Overdue';
+                                        }
+                                        
+                                        return `
+                                            <div class="touch-time-card ${cardClass}" onclick="openTouchTimeModal('${time}', ${baby.id})">
+                                                <div class="touch-time-header">
+                                                    <div class="touch-time-label">${time}</div>
+                                                    <div class="status-badge ${statusClass}">
+                                                        ${statusText}
+                                                    </div>
+                                                </div>
+                                                ${log.complete ? `
+                                                    <div style="font-size: 14px; color: #4a5568; margin-top: 8px;">
+                                                        ${log.temp ? `T: ${log.temp}` : ''} 
+                                                        ${log.hr ? `HR: ${log.hr}` : ''} 
+                                                        ${log.rr ? `RR: ${log.rr}` : ''}
+                                                        ${log.spo2 ? `SpO₂: ${log.spo2}` : ''}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Report Sheet Sections -->
+                        <div class="section">
+                            <div class="section-header" onclick="toggleSection(this.parentElement)">
+                                <div class="section-title">
+                                    👩 Maternal History
+                                </div>
+                                <div class="section-arrow">▼</div>
+                            </div>
+                            <div class="section-content">
+                                <div class="form-grid-2">
+                                    <div class="form-group">
+                                        <label>Maternal Info</label>
+                                        <div style="display: flex; gap: 8px; align-items: center;">
+                                            <input type="text" placeholder="25" style="width: 70px; text-align: center;" 
+                                                   onchange="updateMaternalData('age', this.value)"
+                                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 2)"
+                                                   value="${baby.reportSheet.maternal?.age || ''}">
+                                            <span style="font-size: 14px;">yo</span>
+                                            <span style="font-weight: 600; margin-left: 8px;">G</span>
+                                            <input type="text" placeholder="2" style="width: 50px; text-align: center;" 
+                                                   onchange="updateMaternalData('gravida', this.value)"
+                                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 2)"
+                                                   value="${baby.reportSheet.maternal?.gravida || ''}">
+                                            <span style="font-weight: 600;">P</span>
+                                            <input type="text" placeholder="1" style="width: 50px; text-align: center;" 
+                                                   onchange="updateMaternalData('para', this.value)"
+                                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 2)"
+                                                   value="${baby.reportSheet.maternal?.para || ''}">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Living Children</label>
+                                        <input type="text" placeholder="2yo, 4yo" 
+                                               onchange="updateMaternalData('livingChildren', this.value)"
+                                               value="${baby.reportSheet.maternal?.livingChildren || ''}">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Delivery</label>
+                                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+                                        <select onchange="updateMaternalData('deliveryType', this.value)" style="flex: 1;">
+                                            <option value="">Type...</option>
+                                            <option value="SVD" ${baby.reportSheet.maternal?.deliveryType === 'SVD' ? 'selected' : ''}>SVD</option>
+                                            <option value="C/S" ${baby.reportSheet.maternal?.deliveryType === 'C/S' ? 'selected' : ''}>C/S</option>
+                                            <option value="Induction" ${baby.reportSheet.maternal?.deliveryType === 'Induction' ? 'selected' : ''}>Induction</option>
+                                        </select>
+                                    </div>
+                                    <label style="font-size: 14px; margin-bottom: 8px;"><strong>Reasons (check all that apply):</strong></label>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="preE_reason_${baby.id}" 
+                                                   onchange="updateDeliveryReason('preEclampsia', this.checked)"
+                                                   ${baby.reportSheet.maternal?.deliveryReasons?.preEclampsia ? 'checked' : ''}>
+                                            <label for="preE_reason_${baby.id}">Pre-eclampsia</label>
+                                        </div>
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="abruption_${baby.id}" 
+                                                   onchange="updateDeliveryReason('abruption', this.checked)"
+                                                   ${baby.reportSheet.maternal?.deliveryReasons?.abruption ? 'checked' : ''}>
+                                            <label for="abruption_${baby.id}">Abruption</label>
+                                        </div>
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="ptl_${baby.id}" 
+                                                   onchange="updateDeliveryReason('pretermLabor', this.checked)"
+                                                   ${baby.reportSheet.maternal?.deliveryReasons?.pretermLabor ? 'checked' : ''}>
+                                            <label for="ptl_${baby.id}">Preterm labor</label>
+                                        </div>
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="pprom_${baby.id}" 
+                                                   onchange="updateDeliveryReason('pprom', this.checked)"
+                                                   ${baby.reportSheet.maternal?.deliveryReasons?.pprom ? 'checked' : ''}>
+                                            <label for="pprom_${baby.id}">PPROM</label>
+                                        </div>
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="nrfht_${baby.id}" 
+                                                   onchange="updateDeliveryReason('nrfht', this.checked)"
+                                                   ${baby.reportSheet.maternal?.deliveryReasons?.nrfht ? 'checked' : ''}>
+                                            <label for="nrfht_${baby.id}">NRFHT</label>
+                                        </div>
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="reverseDoppler_${baby.id}" 
+                                                   onchange="updateDeliveryReason('reverseDoppler', this.checked)"
+                                                   ${baby.reportSheet.maternal?.deliveryReasons?.reverseDoppler ? 'checked' : ''}>
+                                            <label for="reverseDoppler_${baby.id}">Reverse doppler</label>
+                                        </div>
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="hellp_reason_${baby.id}" 
+                                                   onchange="updateDeliveryReason('hellp', this.checked)"
+                                                   ${baby.reportSheet.maternal?.deliveryReasons?.hellp ? 'checked' : ''}>
+                                            <label for="hellp_reason_${baby.id}">HELLP</label>
+                                        </div>
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="pih_reason_${baby.id}" 
+                                                   onchange="updateDeliveryReason('pih', this.checked)"
+                                                   ${baby.reportSheet.maternal?.deliveryReasons?.pih ? 'checked' : ''}>
+                                            <label for="pih_reason_${baby.id}">PIH</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label><strong>Conditions</strong> (check all that apply)</label>
+                                    
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="gdm_${baby.id}" 
+                                                   onchange="updateMaternalCondition('gdm', this.checked)"
+                                                   ${baby.reportSheet.maternal?.conditions?.gdm ? 'checked' : ''}>
+                                            <label for="gdm_${baby.id}">GDM</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="t1d_${baby.id}" 
+                                                   onchange="updateMaternalCondition('t1d', this.checked)"
+                                                   ${baby.reportSheet.maternal?.conditions?.t1d ? 'checked' : ''}>
+                                            <label for="t1d_${baby.id}">Type 1 DM</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="t2d_${baby.id}" 
+                                                   onchange="updateMaternalCondition('t2d', this.checked)"
+                                                   ${baby.reportSheet.maternal?.conditions?.t2d ? 'checked' : ''}>
+                                            <label for="t2d_${baby.id}">Type 2 DM</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="insulinDep_${baby.id}" 
+                                                   onchange="updateMaternalCondition('insulinDependent', this.checked)"
+                                                   ${baby.reportSheet.maternal?.conditions?.insulinDependent ? 'checked' : ''}>
+                                            <label for="insulinDep_${baby.id}">Insulin dependent</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="chtn_${baby.id}" 
+                                                   onchange="updateMaternalCondition('chtn', this.checked)"
+                                                   ${baby.reportSheet.maternal?.conditions?.chtn ? 'checked' : ''}>
+                                            <label for="chtn_${baby.id}">Chronic HTN</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="pih_${baby.id}" 
+                                                   onchange="updateMaternalCondition('pih', this.checked)"
+                                                   ${baby.reportSheet.maternal?.conditions?.pih ? 'checked' : ''}>
+                                            <label for="pih_${baby.id}">PIH</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="preE_${baby.id}" 
+                                                   onchange="updateMaternalCondition('preEclampsia', this.checked)"
+                                                   ${baby.reportSheet.maternal?.conditions?.preEclampsia ? 'checked' : ''}>
+                                            <label for="preE_${baby.id}">Pre-eclampsia</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="severeFeatures_${baby.id}" 
+                                                   onchange="updateMaternalCondition('severeFeatures', this.checked)"
+                                                   ${baby.reportSheet.maternal?.conditions?.severeFeatures ? 'checked' : ''}>
+                                            <label for="severeFeatures_${baby.id}">w/ severe features</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="hellp_${baby.id}" 
+                                                   onchange="updateMaternalCondition('hellp', this.checked)"
+                                                   ${baby.reportSheet.maternal?.conditions?.hellp ? 'checked' : ''}>
+                                            <label for="hellp_${baby.id}">HELLP</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group" style="margin-top: 16px;">
+                                    <label>Additional Notes</label>
+                                    <textarea placeholder="Any additional details..." 
+                                             onchange="updateMaternalData('notes', this.value)"
+                                             style="min-height: 60px;">${baby.reportSheet.maternal?.notes || ''}</textarea>
+                                </div>
+                                
+                                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; margin-top: 16px; font-size: 14px; color: #4a5568;">
+                                    <strong>Summary:</strong>
+                                    <div id="maternalSummary_${baby.id}">${generateMaternalSummary(baby.reportSheet.maternal || {})}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-header" onclick="toggleSection(this.parentElement)">
+                                <div class="section-title">
+                                    👶 Baby History
+                                </div>
+                                <div class="section-arrow">▼</div>
+                            </div>
+                            <div class="section-content">
+                                <div class="form-group">
+                                    <label><strong>Delivery Room Events</strong></label>
+                                    
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="ppv_${baby.id}" 
+                                               onchange="updateBabyHistory('deliveryRoom.ppv', this.checked)"
+                                               ${baby.reportSheet.babyHistory?.deliveryRoom?.ppv ? 'checked' : ''}>
+                                        <label for="ppv_${baby.id}">PPV given</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="straightBubble_${baby.id}" 
+                                               onchange="updateBabyHistory('deliveryRoom.straightBubble', this.checked)"
+                                               ${baby.reportSheet.babyHistory?.deliveryRoom?.straightBubble ? 'checked' : ''}>
+                                        <label for="straightBubble_${baby.id}">Straight to bubble CPAP</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="intubatedDR_${baby.id}" 
+                                               onchange="updateBabyHistory('deliveryRoom.intubated', this.checked)"
+                                               ${baby.reportSheet.babyHistory?.deliveryRoom?.intubated ? 'checked' : ''}>
+                                        <label for="intubatedDR_${baby.id}">Intubated in delivery room</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="codedDR_${baby.id}" 
+                                               onchange="updateBabyHistory('deliveryRoom.coded', this.checked)"
+                                               ${baby.reportSheet.babyHistory?.deliveryRoom?.coded ? 'checked' : ''}>
+                                        <label for="codedDR_${baby.id}">Coded at delivery</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label><strong>Respiratory History</strong></label>
+                                    <button class="btn btn-add" onclick="addRespiratorySwitchEvent(${baby.id})" style="margin-bottom: 12px;">+ Add Respiratory Change</button>
+                                    <div id="respiratoryHistory_${baby.id}">
+                                        ${(baby.reportSheet.babyHistory?.respiratoryHistory || []).map((event, index) => `
+                                            <div style="background: #f7fafc; padding: 12px; border-radius: 8px; margin-bottom: 8px; position: relative;">
+                                                <div style="display: flex; justify-content: between; align-items: start;">
+                                                    <div style="flex: 1;">
+                                                        <strong>${event.date}</strong> - Switched to ${event.mode}
+                                                        ${event.reason ? `<br><em>Reason: ${event.reason}</em>` : ''}
+                                                    </div>
+                                                    <button onclick="removeRespiratorySwitchEvent(${baby.id}, ${index})" style="background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 12px;">Remove</button>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                        ${(baby.reportSheet.babyHistory?.respiratoryHistory || []).length === 0 ? '<p style="color: #718096; text-align: center;">No respiratory changes recorded</p>' : ''}
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label><strong>Feed Issues</strong></label>
+                                    <textarea placeholder="Any feeding tolerance issues, reflux, residuals, etc..."
+                                             onchange="updateBabyHistory('feedIssues', this.value)">${baby.reportSheet.babyHistory?.feedIssues || ''}</textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Additional Notes</label>
+                                    <textarea placeholder="Any other significant history..."
+                                             onchange="updateBabyHistory('notes', this.value)">${baby.reportSheet.babyHistory?.notes || ''}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-header" onclick="toggleSection(this.parentElement)">
+                                <div class="section-title">
+                                    🫁 Current Respiratory Support
+                                </div>
+                                <div class="section-arrow">▼</div>
+                            </div>
+                            <div class="section-content">
+                                <div class="form-grid-2">
+                                    <div class="form-group">
+                                        <label>Current Mode</label>
+                                        <select onchange="updateRespiratoryMode(this.value)">
+                                            <option value="">Select...</option>
+                                            <option value="RA" ${baby.reportSheet.respiratory.mode === 'RA' ? 'selected' : ''}>Room Air</option>
+                                            <option value="LF-NC" ${baby.reportSheet.respiratory.mode === 'LF-NC' ? 'selected' : ''}>Low Flow Nasal Cannula</option>
+                                            <option value="HF-NC" ${baby.reportSheet.respiratory.mode === 'HF-NC' ? 'selected' : ''}>High Flow Nasal Cannula</option>
+                                            <option value="Bubble" ${baby.reportSheet.respiratory.mode === 'Bubble' ? 'selected' : ''}>Bubble CPAP</option>
+                                            <option value="NI-NAVA" ${baby.reportSheet.respiratory.mode === 'NI-NAVA' ? 'selected' : ''}>Noninvasive NAVA</option>
+                                            <option value="I-NAVA" ${baby.reportSheet.respiratory.mode === 'I-NAVA' ? 'selected' : ''}>Invasive NAVA</option>
+                                            <option value="Conventional" ${baby.reportSheet.respiratory.mode === 'Conventional' ? 'selected' : ''}>Conventional Ventilator</option>
+                                            <option value="Oscillator" ${baby.reportSheet.respiratory.mode === 'Oscillator' ? 'selected' : ''}>Oscillator</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Date Started on Current Mode</label>
+                                        <input type="date" onchange="updateRespiratory('dateStarted', this.value)"
+                                               value="${baby.reportSheet.respiratory.dateStarted || new Date().toISOString().split('T')[0]}">
+                                    </div>
+                                </div>
+                                
+                                <!-- Room Air - No additional settings -->
+                                <div id="raSettings" class="respiratory-settings" style="display: none;">
+                                    <div style="background: #e6fffa; padding: 12px; border-radius: 8px; text-align: center; color: #234e52;">
+                                        No additional settings required for room air
+                                    </div>
+                                </div>
+                                
+                                <!-- Low Flow NC Settings -->
+                                <div id="lfncSettings" class="respiratory-settings" style="display: none;">
+                                    <div class="form-grid-2">
+                                        <div class="form-group">
+                                            <label>Flow Rate (L/min)</label>
+                                            <select onchange="updateRespiratory('flowRate', this.value)">
+                                                <option value="">Select...</option>
+                                                <option value="0.25" ${baby.reportSheet.respiratory.flowRate === '0.25' ? 'selected' : ''}>0.25</option>
+                                                <option value="0.5" ${baby.reportSheet.respiratory.flowRate === '0.5' ? 'selected' : ''}>0.5</option>
+                                                <option value="0.75" ${baby.reportSheet.respiratory.flowRate === '0.75' ? 'selected' : ''}>0.75</option>
+                                                <option value="1" ${baby.reportSheet.respiratory.flowRate === '1' ? 'selected' : ''}>1</option>
+                                                <option value="1.5" ${baby.reportSheet.respiratory.flowRate === '1.5' ? 'selected' : ''}>1.5</option>
+                                                <option value="2" ${baby.reportSheet.respiratory.flowRate === '2' ? 'selected' : ''}>2</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>FiO₂ (%)</label>
+                                            <input type="number" min="21" max="100" placeholder="25" 
+                                                   onchange="updateRespiratory('fio2', this.value)"
+                                                   value="${baby.reportSheet.respiratory.fio2 || ''}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- High Flow NC Settings -->
+                                <div id="hfncSettings" class="respiratory-settings" style="display: none;">
+                                    <div class="form-grid-3">
+                                        <div class="form-group">
+                                            <label>Flow Rate (L/min)</label>
+                                            <select onchange="updateRespiratory('flowRate', this.value)">
+                                                <option value="">Select...</option>
+                                                <option value="2" ${baby.reportSheet.respiratory.flowRate === '2' ? 'selected' : ''}>2</option>
+                                                <option value="3" ${baby.reportSheet.respiratory.flowRate === '3' ? 'selected' : ''}>3</option>
+                                                <option value="4" ${baby.reportSheet.respiratory.flowRate === '4' ? 'selected' : ''}>4</option>
+                                                <option value="5" ${baby.reportSheet.respiratory.flowRate === '5' ? 'selected' : ''}>5</option>
+                                                <option value="6" ${baby.reportSheet.respiratory.flowRate === '6' ? 'selected' : ''}>6</option>
+                                                <option value="7" ${baby.reportSheet.respiratory.flowRate === '7' ? 'selected' : ''}>7</option>
+                                                <option value="8" ${baby.reportSheet.respiratory.flowRate === '8' ? 'selected' : ''}>8</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>FiO₂ (%)</label>
+                                            <input type="number" min="21" max="100" placeholder="30" 
+                                                   onchange="updateRespiratory('fio2', this.value)"
+                                                   value="${baby.reportSheet.respiratory.fio2 || ''}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Temperature (°C)</label>
+                                            <input type="number" min="30" max="40" placeholder="37" 
+                                                   onchange="updateRespiratory('temperature', this.value)"
+                                                   value="${baby.reportSheet.respiratory.temperature || ''}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Bubble CPAP Settings -->
+                                <div id="bubbleSettings" class="respiratory-settings" style="display: none;">
+                                    <div class="form-grid-2">
+                                        <div class="form-group">
+                                            <label>CPAP Level (cmH₂O)</label>
+                                            <select onchange="updateRespiratory('cpapLevel', this.value)">
+                                                <option value="">Select...</option>
+                                                <option value="4" ${baby.reportSheet.respiratory.cpapLevel === '4' ? 'selected' : ''}>4</option>
+                                                <option value="5" ${baby.reportSheet.respiratory.cpapLevel === '5' ? 'selected' : ''}>5</option>
+                                                <option value="6" ${baby.reportSheet.respiratory.cpapLevel === '6' ? 'selected' : ''}>6</option>
+                                                <option value="7" ${baby.reportSheet.respiratory.cpapLevel === '7' ? 'selected' : ''}>7</option>
+                                                <option value="8" ${baby.reportSheet.respiratory.cpapLevel === '8' ? 'selected' : ''}>8</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>FiO₂ (%)</label>
+                                            <input type="number" min="21" max="100" placeholder="25" 
+                                                   onchange="updateRespiratory('fio2', this.value)"
+                                                   value="${baby.reportSheet.respiratory.fio2 || ''}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Noninvasive NAVA Settings -->
+                                <div id="ninavaSettings" class="respiratory-settings" style="display: none;">
+                                    <div class="form-grid-3">
+                                        <div class="form-group">
+                                            <label>NAVA Level</label>
+                                            <input type="number" step="0.1" min="0.5" max="5" placeholder="1.5" 
+                                                   onchange="updateRespiratory('navaLevel', this.value)"
+                                                   value="${baby.reportSheet.respiratory.navaLevel || ''}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>PEEP (cmH₂O)</label>
+                                            <select onchange="updateRespiratory('peep', this.value)">
+                                                <option value="">Select...</option>
+                                                <option value="4" ${baby.reportSheet.respiratory.peep === '4' ? 'selected' : ''}>4</option>
+                                                <option value="5" ${baby.reportSheet.respiratory.peep === '5' ? 'selected' : ''}>5</option>
+                                                <option value="6" ${baby.reportSheet.respiratory.peep === '6' ? 'selected' : ''}>6</option>
+                                                <option value="7" ${baby.reportSheet.respiratory.peep === '7' ? 'selected' : ''}>7</option>
+                                                <option value="8" ${baby.reportSheet.respiratory.peep === '8' ? 'selected' : ''}>8</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>FiO₂ (%)</label>
+                                            <input type="number" min="21" max="100" placeholder="30" 
+                                                   onchange="updateRespiratory('fio2', this.value)"
+                                                   value="${baby.reportSheet.respiratory.fio2 || ''}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Invasive NAVA Settings -->
+                                <div id="inavaSettings" class="respiratory-settings" style="display: none;">
+                                    <div class="form-grid-3">
+                                        <div class="form-group">
+                                            <label>NAVA Level</label>
+                                            <input type="number" step="0.1" min="0.5" max="5" placeholder="1.5" 
+                                                   onchange="updateRespiratory('navaLevel', this.value)"
+                                                   value="${baby.reportSheet.respiratory.navaLevel || ''}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>PEEP (cmH₂O)</label>
+                                            <select onchange="updateRespiratory('peep', this.value)">
+                                                <option value="">Select...</option>
+                                                <option value="4" ${baby.reportSheet.respiratory.peep === '4' ? 'selected' : ''}>4</option>
+                                                <option value="5" ${baby.reportSheet.respiratory.peep === '5' ? 'selected' : ''}>5</option>
+                                                <option value="6" ${baby.reportSheet.respiratory.peep === '6' ? 'selected' : ''}>6</option>
+                                                <option value="7" ${baby.reportSheet.respiratory.peep === '7' ? 'selected' : ''}>7</option>
+                                                <option value="8" ${baby.reportSheet.respiratory.peep === '8' ? 'selected' : ''}>8</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>FiO₂ (%)</label>
+                                            <input type="number" min="21" max="100" placeholder="30" 
+                                                   onchange="updateRespiratory('fio2', this.value)"
+                                                   value="${baby.reportSheet.respiratory.fio2 || ''}">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>ET Tube Size & Depth</label>
+                                        <input type="text" placeholder="3.5 @ 9cm" 
+                                               onchange="updateRespiratory('etTube', this.value)"
+                                               value="${baby.reportSheet.respiratory.etTube || ''}">
+                                    </div>
+                                </div>
+                                
+                                <!-- Conventional Ventilator Settings -->
+                                <div id="conventionalSettings" class="respiratory-settings" style="display: none;">
+                                    <div class="form-grid-3">
+                                        <div class="form-group">
+                                            <label>Mode</label>
+                                            <select onchange="updateRespiratory('ventMode', this.value)">
+                                                <option value="">Select...</option>
+                                                <option value="SIMV" ${baby.reportSheet.respiratory.ventMode === 'SIMV' ? 'selected' : ''}>SIMV</option>
+                                                <option value="AC" ${baby.reportSheet.respiratory.ventMode === 'AC' ? 'selected' : ''}>AC</option>
+                                                <option value="PRVC" ${baby.reportSheet.respiratory.ventMode === 'PRVC' ? 'selected' : ''}>PRVC</option>
+                                                <option value="PSV" ${baby.reportSheet.respiratory.ventMode === 'PSV' ? 'selected' : ''}>PSV</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Rate (bpm)</label>
+                                            <input type="number" min="10" max="60" placeholder="30" 
+                                                   onchange="updateRespiratory('rate', this.value)"
+                                                   value="${baby.reportSheet.respiratory.rate || ''}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>PIP (cmH₂O)</label>
+                                            <input type="number" min="10" max="35" placeholder="18" 
+                                                   onchange="updateRespiratory('pip', this.value)"
+                                                   value="${baby.reportSheet.respiratory.pip || ''}">
+                                        </div>
+                                    </div>
+                                    <div class="form-grid-3">
+                                        <div class="form-group">
+                                            <label>PEEP (cmH₂O)</label>
+                                            <select onchange="updateRespiratory('peep', this.value)">
+                                                <option value="">Select...</option>
+                                                <option value="4" ${baby.reportSheet.respiratory.peep === '4' ? 'selected' : ''}>4</option>
+                                                <option value="5" ${baby.reportSheet.respiratory.peep === '5' ? 'selected' : ''}>5</option>
+                                                <option value="6" ${baby.reportSheet.respiratory.peep === '6' ? 'selected' : ''}>6</option>
+                                                <option value="7" ${baby.reportSheet.respiratory.peep === '7' ? 'selected' : ''}>7</option>
+                                                <option value="8" ${baby.reportSheet.respiratory.peep === '8' ? 'selected' : ''}>8</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>I-Time (sec)</label>
+                                            <input type="number" step="0.05" min="0.2" max="1" placeholder="0.35" 
+                                                   onchange="updateRespiratory('iTime', this.value)"
+                                                   value="${baby.reportSheet.respiratory.iTime || ''}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>FiO₂ (%)</label>
+                                            <input type="number" min="21" max="100" placeholder="40" 
+                                                   onchange="updateRespiratory('fio2', this.value)"
+                                                   value="${baby.reportSheet.respiratory.fio2 || ''}">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>ET Tube Size & Depth</label>
+                                        <input type="text" placeholder="3.5 @ 9cm" 
+                                               onchange="updateRespiratory('etTube', this.value)"
+                                               value="${baby.reportSheet.respiratory.etTube || ''}">
+                                    </div>
+                                </div>
+                                
+                                <!-- Oscillator Settings -->
+                                <div id="oscillatorSettings" class="respiratory-settings" style="display: none;">
+                                    <div class="form-grid-2">
+                                        <div class="form-group">
+                                            <label>Frequency (Hz)</label>
+                                            <select onchange="updateRespiratory('frequency', this.value)">
+                                                <option value="">Select...</option>
+                                                <option value="8" ${baby.reportSheet.respiratory.frequency === '8' ? 'selected' : ''}>8</option>
+                                                <option value="10" ${baby.reportSheet.respiratory.frequency === '10' ? 'selected' : ''}>10</option>
+                                                <option value="12" ${baby.reportSheet.respiratory.frequency === '12' ? 'selected' : ''}>12</option>
+                                                <option value="15" ${baby.reportSheet.respiratory.frequency === '15' ? 'selected' : ''}>15</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Amplitude</label>
+                                            <input type="number" min="10" max="50" placeholder="25" 
+                                                   onchange="updateRespiratory('amplitude', this.value)"
+                                                   value="${baby.reportSheet.respiratory.amplitude || ''}">
+                                        </div>
+                                    </div>
+                                    <div class="form-grid-2">
+                                        <div class="form-group">
+                                            <label>MAP (cmH₂O)</label>
+                                            <input type="number" min="8" max="20" placeholder="12" 
+                                                   onchange="updateRespiratory('map', this.value)"
+                                                   value="${baby.reportSheet.respiratory.map || ''}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>FiO₂ (%)</label>
+                                            <input type="number" min="21" max="100" placeholder="50" 
+                                                   onchange="updateRespiratory('fio2', this.value)"
+                                                   value="${baby.reportSheet.respiratory.fio2 || ''}">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>ET Tube Size & Depth</label>
+                                        <input type="text" placeholder="3.5 @ 9cm" 
+                                               onchange="updateRespiratory('etTube', this.value)"
+                                               value="${baby.reportSheet.respiratory.etTube || ''}">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group" style="margin-top: 20px;">
+                                    <label>Notes</label>
+                                    <textarea placeholder="Tolerating well, desats with position changes, etc..."
+                                             onchange="updateRespiratory('notes', this.value)">${baby.reportSheet.respiratory.notes}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-header" onclick="toggleSection(this.parentElement)">
+                                <div class="section-title">
+                                    🍼 Feeds
+                                </div>
+                                <div class="section-arrow">▼</div>
+                            </div>
+                            <div class="section-content">
+                                <div class="form-grid-3">
+                                    <div class="form-group">
+                                        <label>Route</label>
+                                        <select onchange="updateReportSheet('feeds.route', this.value)">
+                                            <option value="NG" ${baby.reportSheet.feeds.route === 'NG' ? 'selected' : ''}>NG</option>
+                                            <option value="OG" ${baby.reportSheet.feeds.route === 'OG' ? 'selected' : ''}>OG</option>
+                                            <option value="IDF" ${baby.reportSheet.feeds.route === 'IDF' ? 'selected' : ''}>IDF Protocol</option>
+                                            <option value="PO" ${baby.reportSheet.feeds.route === 'PO' ? 'selected' : ''}>PO</option>
+                                            <option value="NPO" ${baby.reportSheet.feeds.route === 'NPO' ? 'selected' : ''}>NPO</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Volume</label>
+                                        <input type="text" placeholder="45ml q3h" 
+                                               onchange="updateReportSheet('feeds.volume', this.value)"
+                                               value="${baby.reportSheet.feeds.volume}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Type</label>
+                                        <input type="text" placeholder="Breastmilk, Enfacare 22..." 
+                                               onchange="updateReportSheet('feeds.type', this.value)"
+                                               value="${baby.reportSheet.feeds.type}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-header" onclick="toggleSection(this.parentElement)">
+                                <div class="section-title">
+                                    💉 Lines & Access
+                                </div>
+                                <div class="section-arrow">▼</div>
+                            </div>
+                            <div class="section-content">
+                                <div class="form-group">
+                                    <label>IV Access</label>
+                                    <input type="text" placeholder="24G right hand, PICC right arm 5cm out..." 
+                                           onchange="updateReportSheet('lines.access', this.value)"
+                                           value="${baby.reportSheet.lines.access || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label>IV Fluids</label>
+                                    <textarea placeholder="D10W @ 80ml/kg/day, TPN @ 5ml/hr..."
+                                             onchange="updateReportSheet('lines.fluids', this.value)">${baby.reportSheet.lines.fluids || ''}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-header" onclick="toggleSection(this.parentElement)">
+                                <div class="section-title">
+                                    💊 Medications & Plan
+                                </div>
+                                <div class="section-arrow">▼</div>
+                            </div>
+                            <div class="section-content">
+                                <div class="form-group">
+                                    <label>Medications</label>
+                                    <textarea placeholder="Current medications and dosing..."
+                                             onchange="updateReportSheet('medications', this.value)">${baby.reportSheet.medications}</textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Plan</label>
+                                    <textarea placeholder="Treatment plan, goals, upcoming procedures..."
+                                             onchange="updateReportSheet('plan', this.value)">${baby.reportSheet.plan}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-header" onclick="toggleSection(this.parentElement)">
+                                <div class="section-title">
+                                    📝 Events & Notes
+                                </div>
+                                <div class="section-arrow">▼</div>
+                            </div>
+                            <div class="section-content">
+                                <button class="btn btn-add" onclick="addEvent()" style="margin-bottom: 16px;">+ Add Event</button>
+                                <div id="eventsList">
+                                    ${baby.events.map(event => `
+                                        <div style="background: #f7fafc; padding: 12px; border-radius: 8px; margin-bottom: 8px;">
+                                            <strong>${event.time}</strong> - ${event.type}: ${event.description}
+                                        </div>
+                                    `).join('')}
+                                    ${baby.events.length === 0 ? '<p style="color: #718096; text-align: center;">No events recorded</p>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleSection(sectionEl) {
+            sectionEl.classList.toggle('expanded');
+        }
+
+        function openTouchTimeModal(time, babyId) {
+            currentTouchTime = time;
+            currentBabyId = babyId;
+            const baby = appState.babies.find(b => b.id === babyId);
+            const log = baby.touchTimes[time];
+            
+            document.getElementById('touchTimeTitle').textContent = `Touch Time: ${time}`;
+            document.getElementById('ttTemp').value = log.temp;
+            document.getElementById('ttHR').value = log.hr;
+            document.getElementById('ttRR').value = log.rr;
+            document.getElementById('ttSpO2').value = log.spo2;
+            document.getElementById('ttFeed').value = log.feed;
+            document.getElementById('ttDiaper').value = log.diaper;
+            document.getElementById('ttPositioning').checked = log.positioning;
+            document.getElementById('ttLineCheck').checked = log.lineCheck;
+            document.getElementById('ttComments').value = log.comments;
+            
+            // Handle feed section visibility
+            const feedSection = document.getElementById('feedSection');
+            const idfSection = document.getElementById('idfScoringSection');
+            
+            if (baby.feedingStatus === 'npo') {
+                feedSection.style.display = 'none';
+                idfSection.style.display = 'none';
+            } else {
+                feedSection.style.display = 'block';
+                
+                // Show IDF scoring if baby is on IDF protocol
+                if (baby.reportSheet.feeds.route === 'IDF') {
+                    idfSection.style.display = 'block';
+                    
+                    // Load existing IDF data
+                    document.getElementById('ttReadinessScore').value = log.idfScoring?.readinessScore || '';
+                    document.getElementById('ttQualityScore').value = log.idfScoring?.qualityScore || '';
+                    document.getElementById('ttIDFNotes').value = log.idfScoring?.notes || '';
+                    
+                    // Show/hide quality score section based on 24hr window
+                    const qualitySection = document.getElementById('qualityScoreSection');
+                    if (baby.reportSheet.feeds.idf?.scoring24hrMet) {
+                        qualitySection.style.display = 'block';
+                    } else {
+                        qualitySection.style.display = 'none';
+                    }
+                } else {
+                    idfSection.style.display = 'none';
+                }
+            }
+            
+            document.getElementById('touchTimeModal').classList.add('active');
+        }
+
+        function saveTouchTime() {
+            const baby = appState.babies.find(b => b.id === currentBabyId);
+            const log = baby.touchTimes[currentTouchTime];
+            
+            log.temp = document.getElementById('ttTemp').value;
+            log.hr = document.getElementById('ttHR').value;
+            log.rr = document.getElementById('ttRR').value;
+            log.spo2 = document.getElementById('ttSpO2').value;
+            log.feed = document.getElementById('ttFeed').value;
+            log.diaper = document.getElementById('ttDiaper').value;
+            log.positioning = document.getElementById('ttPositioning').checked;
+            log.lineCheck = document.getElementById('ttLineCheck').checked;
+            log.comments = document.getElementById('ttComments').value;
+            log.complete = true;
+            log.isOverdue = false; // Clear overdue status when completed
+            
+            // Save IDF scoring if applicable
+            if (baby.reportSheet.feeds.route === 'IDF') {
+                if (!log.idfScoring) log.idfScoring = {};
+                log.idfScoring.readinessScore = document.getElementById('ttReadinessScore').value;
+                log.idfScoring.qualityScore = document.getElementById('ttQualityScore').value;
+                log.idfScoring.notes = document.getElementById('ttIDFNotes').value;
+            }
+            
+            closeModal('touchTimeModal');
+            renderBabies();
+            saveState();
+        }
+
+        function setQuickValue(inputId, value) {
+            document.getElementById(inputId).value = value;
+        }
+
+        function updateReportSheet(field, value) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            const keys = field.split('.');
+            let obj = baby.reportSheet;
+            
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (!obj[keys[i]]) obj[keys[i]] = {};
+                obj = obj[keys[i]];
+            }
+            
+            obj[keys[keys.length - 1]] = value;
+            saveState();
+            // Don't re-render the entire baby content
+        }
+
+        function updateMaternalData(field, value) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            if (!baby.reportSheet.maternal) baby.reportSheet.maternal = {};
+            baby.reportSheet.maternal[field] = value;
+            
+            // Update the summary display
+            const summaryEl = document.getElementById(`maternalSummary_${baby.id}`);
+            if (summaryEl) {
+                summaryEl.textContent = generateMaternalSummary(baby.reportSheet.maternal);
+            }
+            
+            saveState();
+            // Don't re-render the entire baby content
+        }
+
+        function updateMaternalCondition(condition, checked) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            if (!baby.reportSheet.maternal) baby.reportSheet.maternal = {};
+            if (!baby.reportSheet.maternal.conditions) baby.reportSheet.maternal.conditions = {};
+            
+            baby.reportSheet.maternal.conditions[condition] = checked;
+            
+            // Update the summary display
+            const summaryEl = document.getElementById(`maternalSummary_${baby.id}`);
+            if (summaryEl) {
+                summaryEl.textContent = generateMaternalSummary(baby.reportSheet.maternal);
+            }
+            
+            saveState();
+            // Don't re-render the entire baby content
+        }
+
+        function updateDeliveryReason(reason, checked) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            if (!baby.reportSheet.maternal) baby.reportSheet.maternal = {};
+            if (!baby.reportSheet.maternal.deliveryReasons) baby.reportSheet.maternal.deliveryReasons = {};
+            
+            baby.reportSheet.maternal.deliveryReasons[reason] = checked;
+            
+            // Update the summary display
+            const summaryEl = document.getElementById(`maternalSummary_${baby.id}`);
+            if (summaryEl) {
+                summaryEl.textContent = generateMaternalSummary(baby.reportSheet.maternal);
+            }
+            
+            saveState();
+            // Don't re-render the entire baby content
+        }
+
+        function updateBabyHistory(field, value) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            if (!baby.reportSheet.babyHistory) baby.reportSheet.babyHistory = {};
+            
+            const keys = field.split('.');
+            let obj = baby.reportSheet.babyHistory;
+            
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (!obj[keys[i]]) obj[keys[i]] = {};
+                obj = obj[keys[i]];
+            }
+            
+            obj[keys[keys.length - 1]] = value;
+            saveState();
+            // Don't re-render the entire baby content
+        }
+
+        function updateRespiratory(field, value) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            baby.reportSheet.respiratory[field] = value;
+            saveState();
+            // Don't re-render the entire baby content
+        }
+
+        function updateRespiratoryMode(mode) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            baby.reportSheet.respiratory.mode = mode;
+            
+            // Hide all respiratory settings
+            const settings = document.querySelectorAll('.respiratory-settings');
+            settings.forEach(setting => setting.style.display = 'none');
+            
+            // Show relevant settings
+            switch(mode) {
+                case 'RA':
+                    document.getElementById('raSettings').style.display = 'block';
+                    break;
+                case 'LF-NC':
+                    document.getElementById('lfncSettings').style.display = 'block';
+                    break;
+                case 'HF-NC':
+                    document.getElementById('hfncSettings').style.display = 'block';
+                    break;
+                case 'Bubble':
+                    document.getElementById('bubbleSettings').style.display = 'block';
+                    break;
+                case 'NI-NAVA':
+                    document.getElementById('ninavaSettings').style.display = 'block';
+                    break;
+                case 'I-NAVA':
+                    document.getElementById('inavaSettings').style.display = 'block';
+                    break;
+                case 'Conventional':
+                    document.getElementById('conventionalSettings').style.display = 'block';
+                    break;
+                case 'Oscillator':
+                    document.getElementById('oscillatorSettings').style.display = 'block';
+                    break;
+            }
+            
+            saveState();
+            // Don't re-render the entire baby content
+        }
+
+        function addRespiratorySwitchEvent(babyId) {
+            // Set today's date as default (2025)
+            const today = new Date();
+            today.setFullYear(2025);
+            document.getElementById('respChangeDate').value = today.toISOString().split('T')[0];
+            document.getElementById('respChangeMode').value = '';
+            document.getElementById('respChangeReason').value = '';
+            
+            // Store the baby ID for when we save
+            window.currentRespiratoryChangeBabyId = babyId;
+            
+            document.getElementById('respiratoryChangeModal').classList.add('active');
+        }
+
+        function saveRespiratoryChange() {
+            const babyId = window.currentRespiratoryChangeBabyId;
+            const baby = appState.babies.find(b => b.id === babyId);
+            
+            const date = document.getElementById('respChangeDate').value;
+            const mode = document.getElementById('respChangeMode').value;
+            const reason = document.getElementById('respChangeReason').value;
+            
+            if (!date || !mode) {
+                alert('Please fill in date and mode');
+                return;
+            }
+            
+            if (!baby.reportSheet.babyHistory) baby.reportSheet.babyHistory = {};
+            if (!baby.reportSheet.babyHistory.respiratoryHistory) baby.reportSheet.babyHistory.respiratoryHistory = [];
+            
+            // Format date nicely (MM/DD/25 format)
+            const dateObj = new Date(date);
+            const month = dateObj.getMonth() + 1;
+            const day = dateObj.getDate();
+            const year = dateObj.getFullYear().toString().slice(-2); // Last 2 digits of year
+            const formattedDate = `${month}/${day}/${year}`;
+            
+            baby.reportSheet.babyHistory.respiratoryHistory.push({
+                date: formattedDate,
+                mode,
+                reason
+            });
+            
+            closeModal('respiratoryChangeModal');
+            renderBabies();
+            saveState();
+        }
+
+        function removeRespiratorySwitchEvent(babyId, index) {
+            const baby = appState.babies.find(b => b.id === babyId);
+            baby.reportSheet.babyHistory.respiratoryHistory.splice(index, 1);
+            renderBabies();
+            saveState();
+        }
+
+        function updateFeeds(field, value) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            if (!baby.reportSheet.feeds) baby.reportSheet.feeds = {};
+            
+            const keys = field.split('.');
+            let obj = baby.reportSheet.feeds;
+            
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (!obj[keys[i]]) obj[keys[i]] = {};
+                obj = obj[keys[i]];
+            }
+            
+            obj[keys[keys.length - 1]] = value;
+            saveState();
+        }
+
+        function updateFeedRoute(route) {
+            const baby = appState.babies[appState.currentBabyIndex];
+            baby.reportSheet.feeds.route = route;
+            
+            // Hide all conditional sections
+            document.getElementById('ngTubeDetails').style.display = 'none';
+            document.getElementById('ogTubeDetails').style.display = 'none';
+            document.getElementById('idfProtocolDetails').style.display = 'none';
+            document.getElementById('poWarning').style.display = 'none';
+            
+            // Check baby's CGA for PO warning
+            const cga = baby.currentCGA;
+            const isUnder33Weeks = checkIfUnder33Weeks(cga);
+            
+            // Show relevant sections based on route
+            switch(route) {
+                case 'NG':
+                    document.getElementById('ngTubeDetails').style.display = 'block';
+                    break;
+                case 'NG/PO':
+                    document.getElementById('ngTubeDetails').style.display = 'block';
+                    if (isUnder33Weeks) {
+                        document.getElementById('poWarning').style.display = 'block';
+                    }
+                    break;
+                case 'OG':
+                    document.getElementById('ogTubeDetails').style.display = 'block';
+                    break;
+                case 'IDF':
+                    document.getElementById('ngTubeDetails').style.display = 'block'; // IDF usually uses NG
+                    document.getElementById('idfProtocolDetails').style.display = 'block';
+                    if (isUnder33Weeks) {
+                        document.getElementById('poWarning').style.display = 'block';
+                    }
+                    break;
+                case 'PO':
+                    if (isUnder33Weeks) {
+                        document.getElementById('poWarning').style.display = 'block';
+                    }
+                    break;
+            }
+            
+            // If baby is on bubble CPAP, automatically show OG details too
+            if (baby.reportSheet.respiratory.mode === 'Bubble' && route !== 'NPO') {
+                document.getElementById('ogTubeDetails').style.display = 'block';
+                // Set route to include OG if not already
+                if (!route.includes('OG')) {
+                    // Auto-update to show that bubble CPAP babies need OG
+                    const routeSelect = document.querySelector('select[onchange="updateFeedRoute(this.value)"]');
+                    if (routeSelect && route === 'NG') {
+                        // Could suggest OG instead, but let user decide
+                    }
+                }
+            }
+            
+            saveState();
+        }
+
+        // Update IDF 24hr status and show/hide instructions
+        function updateIDF24hrStatus() {
+            const baby = appState.babies[appState.currentBabyIndex];
+            const met = baby.reportSheet.feeds.idf?.scoring24hrMet;
+            
+            document.getElementById('beforeMet').style.display = met ? 'none' : 'block';
+            document.getElementById('afterMet').style.display = met ? 'block' : 'none';
+        }
+
+        function editBaby(babyId) {
+            const baby = appState.babies.find(b => b.id === babyId);
+            window.currentEditBabyId = babyId;
+            
+            // Populate the form with current data
+            document.getElementById('editBabyName').value = baby.name;
+            document.getElementById('editBabyDescription').value = baby.description;
+            document.getElementById('editGaAtBirth').value = baby.gaAtBirth;
+            document.getElementById('editCurrentCGA').value = baby.currentCGA;
+            document.getElementById('editDaysOfLife').value = baby.daysOfLife;
+            document.getElementById('editFirstTouchTime').value = baby.firstTouchTime;
+            document.getElementById('editFeedingStatus').value = baby.feedingStatus;
+            
+            updateEditFeedingInfo();
+            document.getElementById('editBabyModal').classList.add('active');
+        }
+
+        function calculateEditDOL() {
+            const ga = document.getElementById('editGaAtBirth').value;
+            const cga = document.getElementById('editCurrentCGA').value;
+            
+            if (ga && cga) {
+                try {
+                    const parseGA = (gaStr) => {
+                        const parts = gaStr.split('+');
+                        const weeks = parseInt(parts[0]) || 0;
+                        const days = parseInt(parts[1]) || 0;
+                        return weeks * 7 + days;
+                    };
+                    
+                    const gaDays = parseGA(ga);
+                    const cgaDays = parseGA(cga);
+                    const dol = cgaDays - gaDays;
+                    
+                    if (dol >= 0) {
+                        document.getElementById('editDaysOfLife').value = dol;
+                    }
+                    
+                    // Show feeding warning if <33 weeks
+                    const feedingWarning = document.getElementById('editFeedingWarning');
+                    if (feedingWarning) {
+                        const isUnder33 = checkIfUnder33Weeks(cga);
+                        feedingWarning.style.display = isUnder33 ? 'block' : 'none';
+                    }
+                } catch (e) {
+                    console.error('Error calculating DOL:', e);
+                }
+            }
+        }
+
+        function updateEditFeedingInfo() {
+            const status = document.getElementById('editFeedingStatus').value;
+            const infoEl = document.getElementById('editFeedingInfo');
+            
+            if (status === 'regular') {
+                infoEl.className = 'feeding-indicator feeding-q3';
+                infoEl.textContent = 'Touch times every 3 hours';
+            } else {
+                infoEl.className = 'feeding-indicator feeding-q4';
+                const label = status === 'npo' ? 'NPO' : 'Continuous feeds';
+                infoEl.textContent = `${label} - Touch times every 4 hours`;
+            }
+        }
+
+        function updateEditTouchTimes() {
+            // This will be called when first touch time changes
+            // The actual touch time regeneration happens in saveEditBaby
+        }
+
+        function saveEditBaby() {
+            const babyId = window.currentEditBabyId;
+            const baby = appState.babies.find(b => b.id === babyId);
+            
+            const newFirstTouchTime = document.getElementById('editFirstTouchTime').value;
+            const newFeedingStatus = document.getElementById('editFeedingStatus').value;
+            
+            // Check if touch times need to be regenerated
+            const needsNewTouchTimes = (newFirstTouchTime !== baby.firstTouchTime) || 
+                                      (newFeedingStatus !== baby.feedingStatus);
+            
+            // Update basic info
+            baby.name = document.getElementById('editBabyName').value;
+            baby.description = document.getElementById('editBabyDescription').value;
+            baby.gaAtBirth = document.getElementById('editGaAtBirth').value;
+            baby.currentCGA = document.getElementById('editCurrentCGA').value;
+            baby.daysOfLife = document.getElementById('editDaysOfLife').value;
+            baby.firstTouchTime = newFirstTouchTime;
+            baby.feedingStatus = newFeedingStatus;
+            
+            if (needsNewTouchTimes) {
+                // Store existing touch time data
+                const existingData = { ...baby.touchTimes };
+                
+                // Generate new touch times
+                const newTouchTimes = generateTouchTimes(newFirstTouchTime, newFeedingStatus);
+                baby.touchTimes = {};
+                
+                // Initialize new touch times
+                newTouchTimes.forEach(time => {
+                    baby.touchTimes[time] = {
+                        complete: false,
+                        temp: '', hr: '', rr: '', spo2: '',
+                        feed: '', diaper: '',
+                        positioning: false, lineCheck: false,
+                        comments: '', isOverdue: false
+                    };
+                    
+                    // Preserve existing data if the time matches
+                    if (existingData[time]) {
+                        baby.touchTimes[time] = { ...existingData[time] };
+                    }
+                });
+            }
+            
+            // Update feeding route if NPO
+            if (newFeedingStatus === 'npo') {
+                baby.reportSheet.feeds.route = 'NPO';
+            }
+            
+            closeModal('editBabyModal');
+            renderBabies();
+            saveState();
+        }
+
+        function addEvent() {
+            const type = prompt('Event type (e.g., Desat, Brady, Med given):');
+            if (!type) return;
+            
+            const description = prompt('Description:');
+            if (!description) return;
+            
+            const baby = appState.babies[appState.currentBabyIndex];
+            const now = new Date();
+            const time = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+            
+            baby.events.push({ time, type, description });
+            renderBabies();
+            saveState();
+        }
+
+        function editBaby(babyId) {
+            const baby = appState.babies.find(b => b.id === babyId);
+            window.currentEditBabyId = babyId;
+            
+            // Populate the form with current data
+            document.getElementById('editBabyName').value = baby.name;
+            document.getElementById('editBabyDescription').value = baby.description;
+            document.getElementById('editGaAtBirth').value = baby.gaAtBirth;
+            document.getElementById('editCurrentCGA').value = baby.currentCGA;
+            document.getElementById('editDaysOfLife').value = baby.daysOfLife;
+            document.getElementById('editFirstTouchTime').value = baby.firstTouchTime;
+            document.getElementById('editFeedingStatus').value = baby.feedingStatus;
+            
+            updateEditFeedingInfo();
+            document.getElementById('editBabyModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function exportReport() {
+            let report = `NICU SHIFT REPORT\n`;
+            const shiftLabel = appState.shiftStart === '07:00' ? '7:00 AM - 7:00 PM' : '1:00 PM - 7:00 PM';
+            report += `Shift: ${shiftLabel}\n`;
+            report += `Generated: ${new Date().toLocaleString()}\n`;
+            report += `${'='.repeat(50)}\n\n`;
+            
+            appState.babies.forEach(baby => {
+                const touchTimes = Object.keys(baby.touchTimes);
+                const feedingLabel = baby.feedingStatus === 'regular' ? 'Q3 feeds' : 
+                                   baby.feedingStatus === 'npo' ? 'NPO' : 'Continuous feeds';
+                
+                report += `BABY: ${baby.name}\n`;
+                if (baby.description) report += `Notes: ${baby.description}\n`;
+                report += `GA: ${baby.gaAtBirth} | CGA: ${baby.currentCGA} | DOL: ${baby.daysOfLife}\n`;
+                report += `Feeding Status: ${feedingLabel} | First Touch Time: ${baby.firstTouchTime}\n\n`;
+                
+                report += `MATERNAL HISTORY:\n${generateMaternalSummary(baby.reportSheet.maternal || {})}\n`;
+                if (baby.reportSheet.maternal?.notes) {
+                    report += `Additional notes: ${baby.reportSheet.maternal.notes}\n`;
+                }
+                report += `\n`;
+                report += `RESPIRATORY: ${baby.reportSheet.respiratory.mode}${baby.reportSheet.respiratory.fio2 ? `, FiO₂: ${baby.reportSheet.respiratory.fio2}` : ''}\n`;
+                if (baby.reportSheet.respiratory.notes) report += `Notes: ${baby.reportSheet.respiratory.notes}\n`;
+                report += `\n`;
+                
+                report += `FEEDS: ${baby.reportSheet.feeds.route}`;
+                if (baby.reportSheet.feeds.volume) report += `, ${baby.reportSheet.feeds.volume}`;
+                if (baby.reportSheet.feeds.type) report += `, ${baby.reportSheet.feeds.type}`;
+                report += `\n\n`;
+                
+                if (baby.reportSheet.lines.access) report += `IV ACCESS: ${baby.reportSheet.lines.access}\n`;
+                if (baby.reportSheet.lines.fluids) report += `IV FLUIDS: ${baby.reportSheet.lines.fluids}\n`;
+                if (baby.reportSheet.medications) report += `MEDICATIONS: ${baby.reportSheet.medications}\n`;
+                if (baby.reportSheet.plan) report += `PLAN: ${baby.reportSheet.plan}\n`;
+                report += `\n`;
+                
+                report += `TOUCH TIMES (${baby.feedingStatus === 'regular' ? 'Q3H' : 'Q4H'}):\n`;
+                touchTimes.forEach(time => {
+                    const log = baby.touchTimes[time];
+                    if (log.complete) {
+                        report += `${time}: T:${log.temp} HR:${log.hr} RR:${log.rr} SpO₂:${log.spo2}\n`;
+                        if (log.feed && baby.feedingStatus !== 'npo') report += `  Feed: ${log.feed}\n`;
+                        if (log.diaper) report += `  Diaper: ${log.diaper}\n`;
+                        if (log.comments) report += `  Comments: ${log.comments}\n`;
+                    } else {
+                        report += `${time}: Not completed\n`;
+                    }
+                });
+                
+                if (baby.events.length > 0) {
+                    report += `\nEVENTS:\n`;
+                    baby.events.forEach(event => {
+                        report += `${event.time} - ${event.type}: ${event.description}\n`;
+                    });
+                }
+                
+                report += `\n${'='.repeat(50)}\n\n`;
+            });
+            
+            navigator.clipboard.writeText(report).then(() => {
+                alert('📋 Report copied to clipboard!\n\nYou can now paste it into your charting system.');
+            }).catch(() => {
+                // Fallback - create downloadable file
+                const blob = new Blob([report], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `nicu-shift-${new Date().toISOString().split('T')[0]}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+
+        function saveShift() {
+            const dataStr = JSON.stringify(appState, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nicu-shift-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function loadPreviousShift() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        appState = JSON.parse(event.target.result);
+                        document.getElementById('setupScreen').classList.add('hidden');
+                        document.getElementById('mainApp').classList.remove('hidden');
+                        updateShiftDisplay();
+                        renderBabies();
+                        saveState();
+                    } catch (err) {
+                        alert('Error loading file. Please check the format.');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function saveState() {
+            localStorage.setItem('nicuShiftTracker', JSON.stringify(appState));
+        }
+
+        // Initialize app
+        init();
+    </script>
+</body>
+</html>
