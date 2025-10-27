@@ -684,6 +684,38 @@ const ReportSheetSection = ({ currentShiftId, babyId, assignmentType }) => {
                 ...data,
                 maternalHistory: data?.maternalHistory || '',
                 currentProblems: data?.currentProblems || '',
+                // Baby History fields
+                birthWeight: data?.birthWeight || null,
+                currentWeight: data?.currentWeight || null,
+                apgars_1min: data?.apgars_1min || null,
+                apgars_5min: data?.apgars_5min || null,
+                apgars_10min: data?.apgars_10min || null,
+                abdominalGirth: data?.abdominalGirth || null,
+                // Imaging - CUS (Cranial Ultrasound)
+                cusDate: data?.cusDate || '',
+                cusFindings: data?.cusFindings || '',
+                cusFollowUpPlan: data?.cusFollowUpPlan || '',
+                cusFollowUpDate: data?.cusFollowUpDate || '',
+                // Imaging - Echo
+                echoDate: data?.echoDate || '',
+                echoFindings: data?.echoFindings || '',
+                echoFollowUpPlan: data?.echoFollowUpPlan || '',
+                echoFollowUpDate: data?.echoFollowUpDate || '',
+                // Imaging - EEG
+                eegDate: data?.eegDate || '',
+                eegFindings: data?.eegFindings || '',
+                eegFollowUpPlan: data?.eegFollowUpPlan || '',
+                eegFollowUpDate: data?.eegFollowUpDate || '',
+                // Other Imaging
+                mriDate: data?.mriDate || '',
+                mriFindings: data?.mriFindings || '',
+                renalUSDate: data?.renalUSDate || '',
+                renalUSFindings: data?.renalUSFindings || '',
+                abdominalUSDate: data?.abdominalUSDate || '',
+                abdominalUSFindings: data?.abdominalUSFindings || '',
+                otherImagingType: data?.otherImagingType || '',
+                otherImagingDate: data?.otherImagingDate || '',
+                otherImagingFindings: data?.otherImagingFindings || '',
                 respiratoryMode: data?.respiratoryMode || '',
                 respiratoryFlow: data?.respiratoryFlow || null, // Changed to null for numbers
                 respiratoryFiO2: data?.respiratoryFiO2 || null, // Changed to null for numbers
@@ -715,9 +747,16 @@ const ReportSheetSection = ({ currentShiftId, babyId, assignmentType }) => {
                 uacFluids: data?.uacFluids || '',
                 uacRate: data?.uacRate || '',
                 medications: data?.medications || {
-                    gentamicin: false,
+                    vitD: false,
+                    multivitaminWithIron: false,
+                    multivitaminWithoutIron: false,
+                    iron: false,
+                    caffeine: false,
+                    nacl: false,
+                    glycerin: false,
+                    kcl: false,
                     ampicillin: false,
-                    vanc: false,
+                    gentamicin: false,
                     otherMedications: ''
                 },
                 labsOrdered: data?.labsOrdered || '',
@@ -756,7 +795,9 @@ const ReportSheetSection = ({ currentShiftId, babyId, assignmentType }) => {
         }
 
         // Handle medications as a nested object
-        if (name === 'gentamicin' || name === 'ampicillin' || name === 'vanc' || name === 'otherMedications') {
+        if (name === 'vitD' || name === 'multivitaminWithIron' || name === 'multivitaminWithoutIron' ||
+            name === 'iron' || name === 'caffeine' || name === 'nacl' || name === 'glycerin' ||
+            name === 'kcl' || name === 'ampicillin' || name === 'gentamicin' || name === 'otherMedications') {
             setReportData(prev => ({
                 ...prev,
                 medications: {
@@ -818,6 +859,80 @@ const ReportSheetSection = ({ currentShiftId, babyId, assignmentType }) => {
                 </CollapsibleSection>
 
                 <CollapsibleSection
+                    title="👶 Baby History & Measurements"
+                    isOpen={openSection === 'babyHistory'}
+                    toggleOpen={() => toggleSection('babyHistory')}
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input label="Birth Weight (g)" type="number" name="birthWeight" value={reportData.birthWeight} onChange={handleChange} />
+                        <Input label="Current Weight (g)" type="number" name="currentWeight" value={reportData.currentWeight} onChange={handleChange} />
+                        <Input label="Apgars (1 min)" type="number" name="apgars_1min" value={reportData.apgars_1min} onChange={handleChange} />
+                        <Input label="Apgars (5 min)" type="number" name="apgars_5min" value={reportData.apgars_5min} onChange={handleChange} />
+                        <Input label="Apgars (10 min)" type="number" name="apgars_10min" value={reportData.apgars_10min} onChange={handleChange} />
+                        <Input label="Abdominal Girth (cm)" type="number" name="abdominalGirth" value={reportData.abdominalGirth} onChange={handleChange} />
+                    </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection
+                    title="🩻 Imaging & Studies"
+                    isOpen={openSection === 'imaging'}
+                    toggleOpen={() => toggleSection('imaging')}
+                >
+                    <div className="space-y-6">
+                        {/* CUS - Cranial Ultrasound */}
+                        <div className="p-4 bg-blue-50 rounded-lg">
+                            <h4 className="font-semibold text-gray-800 mb-3">CUS (Cranial Ultrasound)</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input label="Date" name="cusDate" value={reportData.cusDate} onChange={handleChange} placeholder="e.g., DOL 3" />
+                                <TextArea label="Findings" name="cusFindings" value={reportData.cusFindings} onChange={handleChange} placeholder="e.g., Grade II IVH" rows="2" />
+                                <Input label="Follow-up Date" name="cusFollowUpDate" value={reportData.cusFollowUpDate} onChange={handleChange} placeholder="e.g., DOL 30" />
+                                <TextArea label="Follow-up Plan" name="cusFollowUpPlan" value={reportData.cusFollowUpPlan} onChange={handleChange} placeholder="e.g., Repeat CUS in 4 weeks" rows="2" />
+                            </div>
+                        </div>
+
+                        {/* Echo */}
+                        <div className="p-4 bg-red-50 rounded-lg">
+                            <h4 className="font-semibold text-gray-800 mb-3">Echo (Echocardiogram)</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input label="Date" name="echoDate" value={reportData.echoDate} onChange={handleChange} placeholder="e.g., DOL 5" />
+                                <TextArea label="Findings" name="echoFindings" value={reportData.echoFindings} onChange={handleChange} placeholder="e.g., Small PDA, no PH" rows="2" />
+                                <Input label="Follow-up Date" name="echoFollowUpDate" value={reportData.echoFollowUpDate} onChange={handleChange} placeholder="e.g., DOL 14" />
+                                <TextArea label="Follow-up Plan" name="echoFollowUpPlan" value={reportData.echoFollowUpPlan} onChange={handleChange} placeholder="e.g., Repeat echo to assess PDA" rows="2" />
+                            </div>
+                        </div>
+
+                        {/* EEG */}
+                        <div className="p-4 bg-purple-50 rounded-lg">
+                            <h4 className="font-semibold text-gray-800 mb-3">EEG</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input label="Date" name="eegDate" value={reportData.eegDate} onChange={handleChange} placeholder="e.g., DOL 2" />
+                                <TextArea label="Findings" name="eegFindings" value={reportData.eegFindings} onChange={handleChange} placeholder="e.g., Normal background, no seizures" rows="2" />
+                                <Input label="Follow-up Date" name="eegFollowUpDate" value={reportData.eegFollowUpDate} onChange={handleChange} placeholder="e.g., DOL 10" />
+                                <TextArea label="Follow-up Plan" name="eegFollowUpPlan" value={reportData.eegFollowUpPlan} onChange={handleChange} placeholder="e.g., Repeat if clinical concern" rows="2" />
+                            </div>
+                        </div>
+
+                        {/* Other Imaging */}
+                        <div className="p-4 bg-green-50 rounded-lg">
+                            <h4 className="font-semibold text-gray-800 mb-3">Other Imaging</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input label="MRI Date" name="mriDate" value={reportData.mriDate} onChange={handleChange} placeholder="e.g., DOL 7" />
+                                <TextArea label="MRI Findings" name="mriFindings" value={reportData.mriFindings} onChange={handleChange} placeholder="e.g., Normal brain MRI" rows="2" />
+                                <Input label="Renal U/S Date" name="renalUSDate" value={reportData.renalUSDate} onChange={handleChange} placeholder="e.g., DOL 3" />
+                                <TextArea label="Renal U/S Findings" name="renalUSFindings" value={reportData.renalUSFindings} onChange={handleChange} placeholder="e.g., Normal kidneys bilaterally" rows="2" />
+                                <Input label="Abdominal U/S Date" name="abdominalUSDate" value={reportData.abdominalUSDate} onChange={handleChange} placeholder="e.g., DOL 4" />
+                                <TextArea label="Abdominal U/S Findings" name="abdominalUSFindings" value={reportData.abdominalUSFindings} onChange={handleChange} placeholder="e.g., Normal bowel gas pattern" rows="2" />
+                                <Input label="Other Imaging Type" name="otherImagingType" value={reportData.otherImagingType} onChange={handleChange} placeholder="e.g., Chest X-ray, Hip U/S" />
+                                <Input label="Other Imaging Date" name="otherImagingDate" value={reportData.otherImagingDate} onChange={handleChange} placeholder="e.g., DOL 1" />
+                                <div className="col-span-full">
+                                    <TextArea label="Other Imaging Findings" name="otherImagingFindings" value={reportData.otherImagingFindings} onChange={handleChange} placeholder="e.g., RDS pattern on CXR" rows="2" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection
                     title="Respiratory"
                     isOpen={openSection === 'respiratory'}
                     toggleOpen={() => toggleSection('respiratory')}
@@ -855,7 +970,7 @@ const ReportSheetSection = ({ currentShiftId, babyId, assignmentType }) => {
                             name="feedType"
                             value={reportData.feedType}
                             onChange={handleChange}
-                            options={['', 'Formula', 'Breastmilk', 'Donor', 'Fortified']}
+                            options={['', 'Formula', 'Breastmilk', 'Donor', 'Fortified', 'Nutramigen 20 cal', 'Nutramigen 22 cal']}
                         />
                         <Input label="Feed Calories" name="feedCalories" value={reportData.feedCalories} onChange={handleChange} placeholder="e.g., 20 cal" />
                         <Input label="Feed Volume" type="number" name="feedVolume" value={reportData.feedVolume} onChange={handleChange} />
@@ -865,7 +980,7 @@ const ReportSheetSection = ({ currentShiftId, babyId, assignmentType }) => {
                             name="bottleNippleType"
                             value={reportData.bottleNippleType}
                             onChange={handleChange}
-                            options={['', 'dr. browns ultra preemie', 'preemie', 'transition', 'level 1', 'level 2', 'level 3', 'enfamil slow flow', 'extra slow flow']}
+                            options={['', 'Slow flow', 'Extra slow flow', 'Dr. Browns preemie', 'Dr. Browns ultra preemie', 'Dr. Browns transition', 'Dr. Browns level 1', 'Dr. Browns level 2', 'MAM level 0', 'MAM level 1', 'MAM level 2', 'Other']}
                         />
                     </div>
                 </CollapsibleSection>
@@ -940,17 +1055,37 @@ const ReportSheetSection = ({ currentShiftId, babyId, assignmentType }) => {
                     isOpen={openSection === 'medications'}
                     toggleOpen={() => toggleSection('medications')}
                 >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="col-span-full">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Common Antibiotics</label>
-                            <div className="grid grid-cols-2 gap-4">
-                                {/* Checkboxes use handleCheckboxChange */}
-                                <Checkbox label="Gentamicin" name="gentamicin" checked={reportData.medications?.gentamicin} onChange={handleCheckboxChange} />
-                                <Checkbox label="Ampicillin" name="ampicillin" checked={reportData.medications?.ampicillin} onChange={handleCheckboxChange} />
-                                <Checkbox label="Vanc" name="vanc" checked={reportData.medications?.vanc} onChange={handleCheckboxChange} />
-                                {/* This input was missing the `name` prop and should use the main handleChange */}
-                                <Input label="Other Meds" name="otherMedications" value={reportData.medications?.otherMedications} onChange={handleChange} />
+                    <div className="grid grid-cols-1 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Vitamins & Supplements</label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <Checkbox label="Vitamin D" name="vitD" checked={reportData.medications?.vitD} onChange={handleCheckboxChange} />
+                                <Checkbox label="MVI with Iron" name="multivitaminWithIron" checked={reportData.medications?.multivitaminWithIron} onChange={handleCheckboxChange} />
+                                <Checkbox label="MVI w/o Iron" name="multivitaminWithoutIron" checked={reportData.medications?.multivitaminWithoutIron} onChange={handleCheckboxChange} />
+                                <Checkbox label="Iron" name="iron" checked={reportData.medications?.iron} onChange={handleCheckboxChange} />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Common NICU Meds</label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <Checkbox label="Caffeine" name="caffeine" checked={reportData.medications?.caffeine} onChange={handleCheckboxChange} />
+                                <Checkbox label="NaCl" name="nacl" checked={reportData.medications?.nacl} onChange={handleCheckboxChange} />
+                                <Checkbox label="Glycerin" name="glycerin" checked={reportData.medications?.glycerin} onChange={handleCheckboxChange} />
+                                <Checkbox label="KCl" name="kcl" checked={reportData.medications?.kcl} onChange={handleCheckboxChange} />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Antibiotics</label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <Checkbox label="Ampicillin" name="ampicillin" checked={reportData.medications?.ampicillin} onChange={handleCheckboxChange} />
+                                <Checkbox label="Gentamicin" name="gentamicin" checked={reportData.medications?.gentamicin} onChange={handleCheckboxChange} />
+                            </div>
+                        </div>
+
+                        <div className="col-span-full">
+                            <Input label="Other Medications" name="otherMedications" value={reportData.medications?.otherMedications} onChange={handleChange} placeholder="e.g., Vanc, Dopamine, etc." />
                         </div>
                     </div>
                 </CollapsibleSection>
