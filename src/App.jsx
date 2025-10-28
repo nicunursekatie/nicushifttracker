@@ -5,15 +5,25 @@ import { getFirestore, doc, collection, query, orderBy, onSnapshot, setDoc, addD
 
 // --- Firebase Configuration & Context ---
 
-// Global variables provided by the Canvas environment
+// Use environment variables for Firebase configuration
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+};
+
+// Global variables (fallback for Canvas environment)
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-nicu-app';
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 // Initialize Firebase App
-const firebaseApp = Object.keys(firebaseConfig).length > 0 ? initializeApp(firebaseConfig) : null;
-const db = firebaseApp ? getFirestore(firebaseApp) : null;
-const auth = firebaseApp ? getAuth(firebaseApp) : null;
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const auth = getAuth(firebaseApp);
 
 // Create a context for authentication and Firestore
 const AppContext = createContext();
@@ -27,7 +37,7 @@ const AppProvider = ({ children }) => {
 
     useEffect(() => {
         if (!auth) {
-            console.error("Firebase Auth is not initialized. Check firebaseConfig.");
+            console.error("Firebase Auth is not initialized. Check environment variables.");
             setLoading(false);
             return;
         }
@@ -1747,7 +1757,7 @@ function MainApp() {
     if (!firebaseReady) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-red-100 text-red-800 p-4">
-                <p className="text-xl">Error: Firebase is not properly configured or initialized. Please check `__firebase_config`.</p>
+                <p className="text-xl">Error: Firebase is not properly configured or initialized. Please check your environment variables.</p>
             </div>
         );
     }
