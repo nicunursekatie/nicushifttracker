@@ -4,12 +4,12 @@
 
 ### ✅ 1. Verify Firebase Project Setup
 
-- [ ] Firebase project created
-- [ ] Firestore database enabled
-- [ ] Authentication enabled (Anonymous or Custom Token)
-- [ ] Firebase CLI installed: `npm install -g firebase-tools`
-- [ ] Logged into Firebase: `firebase login`
-- [ ] Project selected: `firebase use <project-id>`
+- [x] Firebase project created
+- [x] Firestore database enabled
+- [x] Authentication enabled (Anonymous or Custom Token)
+- [x] Firebase CLI installed: `npm install -g firebase-tools`
+- [x] Logged into Firebase: `firebase login`
+- [x] Project selected: `firebase use <project-id>`
 
 **Verify with:**
 ```bash
@@ -19,8 +19,8 @@ firebase use
 
 ### ✅ 2. Environment Variables
 
-- [ ] `.env` file created (copy from `.env.example`)
-- [ ] All Firebase config values filled in:
+- [x] `.env` file created (copy from `.env.example`)
+- [x] All Firebase config values filled in:
   - `VITE_FIREBASE_API_KEY`
   - `VITE_FIREBASE_AUTH_DOMAIN`
   - `VITE_FIREBASE_PROJECT_ID`
@@ -35,8 +35,8 @@ cat .env | grep VITE_FIREBASE
 
 ### ✅ 3. Dependencies Installed
 
-- [ ] Main app dependencies installed
-- [ ] Cloud Functions dependencies installed
+- [x] Main app dependencies installed
+- [x] Cloud Functions dependencies installed
 
 **Install:**
 ```bash
@@ -72,9 +72,9 @@ firebase deploy --only firestore:rules
    - User-scoped access patterns
 
 **Status:**
-- [ ] Rules deployed successfully
-- [ ] Rules verified in Firebase Console
-- [ ] Test that users can't access other users' data
+- [x] Rules deployed successfully
+- [x] Rules verified in Firebase Console
+- [x] Test that users can't access other users' data
 
 ---
 

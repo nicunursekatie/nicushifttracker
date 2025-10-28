@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "your-project-id"
+    "default": "nicu-shift-tracker"
   },
   "targets": {},
   "etags": {}
